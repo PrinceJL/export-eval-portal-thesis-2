@@ -1,30 +1,18 @@
 const express = require("express");
-const Evaluation = require("../services/evaluation.service");
-const { validateEvaluation } = require("../services/evaluation.service");
+// Services are now used in controllers
 
 const router = express.Router();
 
-router.post("/save", async (req, res) => {
-  const data = req.body;
-  await Evaluation.findOneAndUpdate(
-    { assignmentId: data.assignmentId },
-    { ...data, submitted: false },
-    { upsert: true }
-  );
-  res.json({ message: "Draft saved" });
-});
+const expertController = require("../controllers/expert.controller");
+const validate = require("../middleware/validation.middleware");
+const { evaluationSchema } = require("../models/schemas/evaluation.schema");
+const authenticate = require("../middleware/auth.middleware");
 
-router.post("/submit", async (req, res) => {
-  try {
-    validateEvaluation(req.body.scores);
-    await Evaluation.findOneAndUpdate(
-      { assignmentId: req.body.assignmentId },
-      { ...req.body, submitted: true }
-    );
-    res.json({ message: "Evaluation submitted" });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+router.use(authenticate);
+
+router.post("/save", expertController.saveDraft);
+
+// Apply validation to submission
+router.post("/submit", validate(evaluationSchema), expertController.submitEvaluation);
 
 module.exports = router;
