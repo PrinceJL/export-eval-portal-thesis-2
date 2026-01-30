@@ -1,7 +1,9 @@
 # export-eval-portal-thesis-2
 Github Repository for the Thesis Evaluation Portal
 
-MUst have mongodb community server installed
+# Must Install
+mongodb community server
+postgresql
 
 set up your .env
 
