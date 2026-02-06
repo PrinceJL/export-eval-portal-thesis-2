@@ -1,4 +1,4 @@
-import api from "./api";
+import api from "./index";
 
 /* LIST */
 export const getMyAssignments = async () => {

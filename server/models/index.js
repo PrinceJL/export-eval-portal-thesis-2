@@ -1,13 +1,15 @@
-const sequelize = require("../config/postgres");
+const connectPostgres = require("../config/postgres");
 const { DataTypes } = require("sequelize");
+
+const sequelize = connectPostgres();
 
 // SQL Models
 const User = require("./sql/user.model")(sequelize, DataTypes);
 const Assignment = require("./sql/assignment.model")(sequelize, DataTypes);
-const PageMaintenance = require("./page_maintanance.model");
+const PageMaintenance = require("./page_maintanance.model")(sequelize, DataTypes);
 // Models to be implemented
-// const ModelVersion = require("./sql/model_version.model")(sequelize, DataTypes);
-// const EvaluationPaper = require("./sql/evaluation_paper.model")(sequelize, DataTypes);
+const ModelVersion = require("./model_version.model")(sequelize, DataTypes);
+const EvaluationPaper = require("./evaluation_paper.model")(sequelize, DataTypes);
 
 // Define SQL Relations
 User.hasMany(Assignment, { foreignKey: "expertId", as: "assignments" });
@@ -26,6 +28,8 @@ module.exports = {
         User,
         Assignment,
         PageMaintenance,
+        ModelVersion,
+        EvaluationPaper
     },
     mongo: {
         EvaluationResponse,
