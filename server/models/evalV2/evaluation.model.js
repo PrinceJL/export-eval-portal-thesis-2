@@ -12,6 +12,6 @@ const EvaluationSchema = new mongoose.Schema({
   filename: { type: String, required: true },
   rag_version: { type: String, required: true },
   items: [EvaluationItemSchema], // array of multiple query/response pairs
-}, { timestamps: true });
+}, { timestamps: true, bufferCommands: false });
 
 module.exports = mongoose.model("Evaluation", EvaluationSchema);

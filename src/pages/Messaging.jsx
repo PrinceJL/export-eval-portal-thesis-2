@@ -175,8 +175,8 @@ export default function Messaging() {
       <div className="card">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ marginTop: 0 }}>Messaging</h2>
-            <p className="muted" style={{ marginTop: 6 }}>
+            <h2 style={{ marginTop: 0, color: '#000' }}>Messaging</h2>
+            <p className="muted" style={{ marginTop: 6, color: '#333' }}>
               Talk to us! Customers (Experts) can chat with Admin users here.
             </p>
           </div>
@@ -186,8 +186,8 @@ export default function Messaging() {
         {error ? <p style={{ color: 'crimson', fontSize: 13, marginBottom: 10 }}>{error}</p> : null}
 
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14, marginTop: 14 }}>
-          <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, maxHeight: 600, overflow: 'auto' }}>
-            <div className="muted" style={{ marginBottom: 10 }}>Contacts</div>
+          <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, maxHeight: 600, overflow: 'auto', backgroundColor: '#fff' }}>
+            <div className="muted" style={{ marginBottom: 10, color: '#000' }}>Contacts</div>
             {contacts.map((c) => (
               <button
                 key={c.id}
@@ -197,22 +197,22 @@ export default function Messaging() {
                 style={{ width: '100%', justifyContent: 'flex-start', marginBottom: 8, background: selected?.id === c.id ? '#f3f4f6' : 'transparent', textAlign: 'left' }}
               >
                 <div>
-                  <div style={{ fontWeight: 600 }}>{c.username}</div>
-                  <div className="muted" style={{ fontSize: 11 }}>{c.role} • {c.group}</div>
+                  <div style={{ fontWeight: 600, color: '#000' }}>{c.username}</div>
+                  <div className="muted" style={{ fontSize: 11, color: '#555' }}>{c.role} • {c.group}</div>
                 </div>
               </button>
             ))}
             {!contacts.length ? <div className="muted">No contacts found.</div> : null}
           </div>
 
-          <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', height: 600 }}>
+          <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', height: 600, backgroundColor: '#fff' }}>
             {!selected ? (
               <div className="muted" style={{ padding: 12 }}>Select a person to start chatting.</div>
             ) : (
               <>
                 <div style={{ borderBottom: '1px solid #f2f2f2', paddingBottom: 10, marginBottom: 10 }}>
-                  <div style={{ fontWeight: 700 }}>{selected.username}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{selected.role} • {selected.email}</div>
+                  <div style={{ fontWeight: 700, color: '#000' }}>{selected.username}</div>
+                  <div className="muted" style={{ fontSize: 12, color: '#555' }}>{selected.role} • {selected.email}</div>
                 </div>
 
                 <div style={{ flex: 1, overflow: 'auto', paddingRight: 6 }}>
@@ -220,7 +220,7 @@ export default function Messaging() {
                     const mine = String(m.senderId) === String(user.id);
                     return (
                       <div key={m._id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
-                        <div style={{ maxWidth: '80%', padding: '10px 14px', borderRadius: 16, background: mine ? '#e8f5ff' : '#f3f4f6' }}>
+                        <div style={{ maxWidth: '80%', padding: '10px 14px', borderRadius: 16, background: mine ? '#e8f5ff' : '#f3f4f6', color: '#000' }}>
                           {m.content && <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>}
                           {m.attachments?.map((att, idx) => (
                             <div key={idx}>{renderAttachment(att)}</div>
@@ -262,7 +262,7 @@ export default function Messaging() {
                           send();
                         }
                       }}
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, color: '#000', background: '#fff' }}
                     />
                     <button className="btn btn-primary" type="button" onClick={() => send()} disabled={!draft.trim() && !uploading}>Send</button>
                   </div>

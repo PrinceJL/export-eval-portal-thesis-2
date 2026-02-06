@@ -18,7 +18,7 @@ const SessionCacheSchema = new mongoose.Schema({
         updatedAt: Date
     }]
 
-}, { timestamps: true });
+}, { timestamps: true, bufferCommands: false });
 
 // TTL Index for automatic cleanup
 SessionCacheSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

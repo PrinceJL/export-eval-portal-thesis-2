@@ -3,8 +3,8 @@ const authenticate = require("../middleware/auth.middleware");
 
 async function login(req, res) {
     try {
-        const { username, password, group, deviceFingerprint } = req.body;
-        const result = await authService.login({ username, password, group, deviceFingerprint, req });
+        const { username, password, deviceFingerprint } = req.body;
+        const result = await authService.login({ username, password, deviceFingerprint, req });
         return res.json(result);
     } catch (e) {
         return res.status(e.statusCode || 400).json({ error: e.message || "Login failed" });

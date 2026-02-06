@@ -4,6 +4,7 @@ const notificationService = require("../services/notification.service");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { Op } = require("sequelize");
 
 function convoId(a, b) {
   const x = String(a);
@@ -14,8 +15,10 @@ function convoId(a, b) {
 // Multer Config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = "uploads/";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    const dir = path.join(process.cwd(), "uploads/");
+    if (process.env.NODE_ENV !== "production" && !fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
     cb(null, dir);
   },
   filename: (req, file, cb) => {
@@ -37,8 +40,6 @@ async function getContacts(req, res) {
     // Admins should see everyone.
     const isExpert = me.role === "EXPERT";
     const isAdmin = me.role === "ADMIN" || me.role === "RESEARCHER";
-
-    const { Op } = require("sequelize");
 
     let users;
     if (isExpert) {
@@ -74,6 +75,11 @@ async function getContacts(req, res) {
 async function uploadMedia(req, res) {
   upload(req, res, (err) => {
     if (err) {
+      if (process.env.NODE_ENV === "production") {
+        return res.status(400).json({
+          error: "Media uploads are disabled in production due to Vercel read-only filesystem. Please contact admin."
+        });
+      }
       return res.status(400).json({ error: err.message || "Upload failed" });
     }
     if (!req.file) {

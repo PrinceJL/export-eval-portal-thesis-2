@@ -21,7 +21,8 @@ const authenticate = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (err) {
-        res.status(403).json({ error: "Invalid token." });
+        // Return 401 so the frontend triggers auto-logout
+        res.status(401).json({ error: "Invalid or expired token." });
     }
 };
 

@@ -13,7 +13,7 @@ const NotificationSchema = new mongoose.Schema({
 
     isRead: { type: Boolean, default: false },
 
-}, { timestamps: true });
+}, { timestamps: true, bufferCommands: false });
 
 // Index for efficiently fetching unread notifications
 NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });

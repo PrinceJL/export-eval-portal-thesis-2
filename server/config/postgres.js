@@ -4,6 +4,15 @@ let sequelize;
 
 const connectPostgres = () => {
     if (!sequelize) {
+        const sslOptions = (process.env.PG_SSL === "true" || !!process.env.DATABASE_URL)
+            ? {
+                ssl: {
+                    require: true,
+                    rejectUnauthorized: false
+                }
+            }
+            : {};
+
         if (process.env.DATABASE_URL) {
             sequelize = new Sequelize(process.env.DATABASE_URL, {
                 dialect: "postgres",
@@ -14,12 +23,7 @@ const connectPostgres = () => {
                     acquire: 30000,
                     idle: 10000
                 },
-                dialectOptions: {
-                    ssl: {
-                        require: true,
-                        rejectUnauthorized: false
-                    }
-                }
+                dialectOptions: sslOptions
             });
         } else {
             sequelize = new Sequelize(
@@ -37,12 +41,7 @@ const connectPostgres = () => {
                         acquire: 30000,
                         idle: 10000
                     },
-                    dialectOptions: {
-                        ssl: {
-                            require: true,
-                            rejectUnauthorized: false
-                        }
-                    }
+                    dialectOptions: sslOptions
                 }
             );
         }

@@ -19,7 +19,7 @@ const MessageSchema = new mongoose.Schema({
     isRead: { type: Boolean, default: false },
     readAt: Date
 
-}, { timestamps: true });
+}, { timestamps: true, bufferCommands: false });
 
 // Index for retrieving conversation history
 MessageSchema.index({ conversationId: 1, createdAt: -1 });

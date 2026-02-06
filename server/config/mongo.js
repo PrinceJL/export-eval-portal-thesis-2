@@ -1,9 +1,8 @@
 const mongoose = require("mongoose");
 
-let isConnected = false;
-
 const connectMongo = async () => {
-    if (isConnected) {
+    // 0: disconnected, 1: connected, 2: connecting, 3: disconnecting
+    if (mongoose.connection.readyState === 1) {
         return;
     }
 
@@ -12,12 +11,17 @@ const connectMongo = async () => {
         if (!uri) {
             throw new Error("No MongoDB URI found in environment variables (MONGO_URI or MONGO_URL)");
         }
+
+        // Disable buffering globally for serverless to prevent hangs on stalled connections
+        mongoose.set("bufferCommands", false);
+
         await mongoose.connect(uri, {
             serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
+            socketTimeoutMS: 30000,
+            heartbeatFrequencyMS: 10000,
         });
-        isConnected = true;
-        console.log("MongoDB connected");
+
+        console.log("MongoDB connected successfully");
     } catch (error) {
         console.error("MongoDB connection error:", error);
         throw error;

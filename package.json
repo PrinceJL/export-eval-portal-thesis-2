@@ -9,7 +9,10 @@
         "preview": "vite preview",
         "server": "nodemon api/index.js",
         "test": "jest",
-        "build:server": "echo 'Building server...'"
+        "seed:admin": "node scripts/seed_admin.js",
+        "build:server": "echo 'Building server...'",
+        "dev:server": "nodemon api/index.js",
+        "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\""
     },
     "dependencies": {
         "@emotion/react": "^11.14.0",
@@ -25,6 +28,7 @@
         "mongoose": "^9.1.5",
         "multer": "^2.0.2",
         "pg": "^8.17.2",
+        "pg-hstore": "^2.3.4",
         "react": "^19.2.0",
         "react-circular-progressbar": "^2.2.0",
         "react-dom": "^19.2.0",
@@ -38,6 +42,7 @@
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^5.1.1",
         "autoprefixer": "^10.4.23",
+        "concurrently": "^9.2.1",
         "daisyui": "^5.5.14",
         "eslint": "^9.39.1",
         "eslint-plugin-react-hooks": "^7.0.1",

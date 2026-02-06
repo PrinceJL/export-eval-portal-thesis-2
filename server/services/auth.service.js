@@ -8,83 +8,96 @@ function makeRefreshToken() {
     return crypto.randomBytes(48).toString("hex");
 }
 
-async function login({ username, password, group, deviceFingerprint, req }) {
-    if (!username || !password || !group) {
-        const err = new Error("Missing username/password/group");
-        err.statusCode = 400;
-        throw err;
-    }
-
-    const user = await sql.User.findOne({ where: { username, group, isActive: true } });
-    if (!user) {
-        const err = new Error("Invalid credentials");
-        err.statusCode = 401;
-        throw err;
-    }
-
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-        const err = new Error("Invalid credentials");
-        err.statusCode = 401;
-        throw err;
-    }
-
-    // Enforce “no 2 instances” if device fingerprint is provided.
-    // (If you don’t have a frontend fingerprint yet, you can omit it for now.)
-    if (deviceFingerprint) {
-        await mongo.SessionCache.deleteMany({ userId: String(user.id) });
-    }
-
-    const accessToken = jwt.sign(
-        {
-            id: String(user.id),
-            role: user.role,
-            username: user.username,
-            group: user.group
-        },
-        process.env.JWT_SECRET || "default_secret_key",
-        { expiresIn: "15m" }
-    );
-
-    // Optional session cache record (Mongo) to support resume/session restore.
-    if (deviceFingerprint) {
-        const refreshToken = makeRefreshToken();
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        await mongo.SessionCache.create({
-            userId: String(user.id),
-            deviceFingerprint,
-            refreshToken,
-            expiresAt,
-            lastActivity: new Date(),
-            cachedMessages: []
-        });
-    }
-
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Audit log (Mongo)
+async function login({ username, password, deviceFingerprint, req }) {
     try {
-        await mongo.AuditLog.create({
-            actorId: String(user.id),
-            action: "login",
-            ipAddress: req?.ip,
-            userAgent: req?.headers?.["user-agent"]
-        });
-    } catch {
-        // audit log should never block login
-    }
-
-    return {
-        accessToken,
-        user: {
-            id: String(user.id),
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            group: user.group
+        if (!username || !password) {
+            const err = new Error("Missing username/password");
+            err.statusCode = 400;
+            throw err;
         }
-    };
+
+        const user = await sql.User.findOne({
+            where: {
+                username,
+                isActive: true
+            }
+        });
+        if (!user) {
+            const err = new Error("Invalid credentials");
+            err.statusCode = 401;
+            throw err;
+        }
+
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) {
+            const err = new Error("Invalid credentials");
+            err.statusCode = 401;
+            throw err;
+        }
+
+        // Enforce “no 2 instances” if device fingerprint is provided.
+        // (If you don’t have a frontend fingerprint yet, you can omit it for now.)
+        if (deviceFingerprint) {
+            await mongo.SessionCache.deleteMany({ userId: String(user.id) });
+        }
+
+        const accessToken = jwt.sign(
+            {
+                id: String(user.id),
+                role: user.role,
+                username: user.username,
+                group: user.group
+            },
+            process.env.JWT_SECRET || "default_secret_key",
+            { expiresIn: "15m" }
+        );
+
+        // Optional session cache record (Mongo) to support resume/session restore.
+        if (deviceFingerprint) {
+            const refreshToken = makeRefreshToken();
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            await mongo.SessionCache.create({
+                userId: String(user.id),
+                deviceFingerprint,
+                refreshToken,
+                expiresAt,
+                lastActivity: new Date(),
+                cachedMessages: []
+            });
+        }
+
+        user.lastLogin = new Date();
+        await user.save();
+
+        // Audit log (Mongo)
+        try {
+            await mongo.AuditLog.create({
+                actorId: String(user.id),
+                action: "login",
+                ipAddress: req?.ip,
+                userAgent: req?.headers?.["user-agent"]
+            });
+        } catch {
+            // audit log should never block login
+        }
+
+        return {
+            accessToken,
+            user: {
+                id: String(user.id),
+                username: user.username,
+                role: user.role,
+                group: user.group
+            }
+        };
+    } catch (error) {
+        console.error("AuthService Login Error:", {
+            message: error.message,
+            stack: error.stack,
+            username: username
+        });
+        throw error;
+    }
 }
 
 async function logout({ userId, deviceFingerprint }) {

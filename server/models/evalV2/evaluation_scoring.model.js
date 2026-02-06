@@ -39,7 +39,7 @@ const EvaluationScoringSchema = new mongoose.Schema(
       }
     }
   },
-  { timestamps: true }
+  { timestamps: true, bufferCommands: false }
 );
 
 module.exports = mongoose.model("EvaluationScoring", EvaluationScoringSchema);

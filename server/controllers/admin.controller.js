@@ -39,8 +39,8 @@ async function createUser(req, res) {
     const { username, email, group, role } = req.body;
     let { password } = req.body;
 
-    if (!username || !email || !group || !role) {
-      return res.status(400).json({ error: "Missing username/email/group/role" });
+    if (!username || !group || !role) {
+      return res.status(400).json({ error: "Missing username/group/role" });
     }
 
     if (!["ADMIN", "EXPERT", "RESEARCHER"].includes(role)) {
@@ -74,9 +74,6 @@ async function createUser(req, res) {
   } catch (e) {
     // Friendly unique constraint errors
     const msg = String(e?.message || "");
-    if (msg.includes("users_email") || msg.includes("email")) {
-      return res.status(409).json({ error: "Email already exists" });
-    }
     if (msg.includes("username") && msg.includes("group")) {
       return res.status(409).json({ error: "Username already exists for this group" });
     }
@@ -210,7 +207,7 @@ async function createAssignment(req, res) {
         "You have a new evaluation assignment.",
         { assignmentId: String(assignment._id) }
       );
-    } catch {}
+    } catch { }
 
     const populated = await assignmentService.getAssignmentById(assignment._id);
     res.status(201).json(populated);

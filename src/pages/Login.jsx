@@ -31,7 +31,7 @@ export default function Login() {
       <div className="card" style={{ width: '100%', maxWidth: 420 }}>
         <h1 style={{ marginTop: 0, marginBottom: 6 }}>Expert Portal Login</h1>
         <div className="muted" style={{ marginBottom: 12 }}>
-          Enter your credentials (includes <b>group</b>).
+          Enter your credentials.
         </div>
 
         {error ? <div className="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
@@ -43,13 +43,6 @@ export default function Login() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
-          />
-
-          <input
-            className="input"
-            placeholder="Group (e.g. TEAM404)"
-            value={group}
-            onChange={(e) => setGroup(e.target.value)}
           />
 
           <input

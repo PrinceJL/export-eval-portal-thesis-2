@@ -43,17 +43,21 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    // Listen for API 401s
+    const handleLogoutTrace = () => logout();
+    window.addEventListener('auth:logout', handleLogoutTrace);
+
     if (!isAuthed) {
       clearIdleTimer();
-      return;
+      return () => window.removeEventListener('auth:logout', handleLogoutTrace);
     }
 
     scheduleIdleLogout();
-
     const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
     for (const ev of events) window.addEventListener(ev, markActivity, { passive: true });
 
     return () => {
+      window.removeEventListener('auth:logout', handleLogoutTrace);
       for (const ev of events) window.removeEventListener(ev, markActivity);
       clearIdleTimer();
     };
@@ -61,12 +65,12 @@ export function AuthProvider({ children }) {
   }, [isAuthed]);
 
   // === Actions ===
-  const login = async ({ username, password, group }) => {
+  const login = async ({ username, password }) => {
     const deviceFingerprint = getDeviceFingerprint();
 
     const data = await apiFetch('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password, group, deviceFingerprint })
+      body: JSON.stringify({ username, password, deviceFingerprint })
     });
 
     localStorage.setItem('accessToken', data.accessToken);

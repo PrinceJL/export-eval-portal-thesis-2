@@ -5,7 +5,7 @@
  */
 
 export function getApiBaseUrl() {
-  return import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  return import.meta.env.VITE_API_URL || '/api';
 }
 
 export async function apiFetch(path, options = {}) {
@@ -40,11 +40,17 @@ export async function apiFetch(path, options = {}) {
     if (res.status === 503) {
       try {
         sessionStorage.setItem('maintenanceMessage', data?.message || msg);
-      } catch {}
+      } catch { }
       if (window.location.pathname !== '/maintenance') {
         window.location.href = '/maintenance';
       }
     }
+
+    // Auto-logout on 401
+    if (res.status === 401) {
+      window.dispatchEvent(new Event('auth:logout'));
+    }
+
     const err = new Error(msg);
     err.status = res.status;
     err.data = data;

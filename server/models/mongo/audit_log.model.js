@@ -18,7 +18,7 @@ const AuditLogSchema = new mongoose.Schema({
     ipAddress: String,
     userAgent: String,
 
-}, { timestamps: true });
+}, { timestamps: true, bufferCommands: false });
 
 // Prevent updates to audit logs to ensure integrity
 AuditLogSchema.pre('findOneAndUpdate', function () {

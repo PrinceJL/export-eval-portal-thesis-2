@@ -1,23 +1,18 @@
+const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false); // Disable buffering before requiring models
+require("pg"); // Explicitly require to force Vercel bundler to include it
 require("dotenv").config();
 const app = require("../server/app");
 const connectMongo = require("../server/config/mongo");
 const { sql } = require("../server/models/index");
 
-// Initializing DB connections
-const startServerless = async () => {
-    try {
-        await connectMongo();
-        // Sequelize sync is generally avoided in every serverless hit, 
-        // but here we ensure models are initialized.
-        // In fully production environments, migrations should be used.
-        await sql.sequelize.authenticate();
-        console.log("Database connections initialized for serverless function");
-    } catch (error) {
-        console.error("Database initialization failed:", error);
-    }
-};
+// For local development only
+if (process.env.NODE_ENV === "development") {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server running locally on port ${PORT}`);
+    });
+}
 
-startServerless();
-
-// Export the app as a serverless function
+// Export the app for Vercel
 module.exports = app;

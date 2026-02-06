@@ -62,9 +62,9 @@ export default function Dashboard() {
                 <div className="flex gap-4 overflow-x-auto flex-1 p-2 bg-base-200 rounded-lg shadow-md">
                     {dimensions.map((d) => (
                         <StatCard
-                            key={d.dimension_name}
-                            title={d.dimension_name}
-                            value={d.average_score}
+                            key={d.name}
+                            title={d.name}
+                            value={d.avgScore}
                             subtitle={d.sentiment}
                             style={{ minWidth: "250px", flexShrink: 0 }}
                         />

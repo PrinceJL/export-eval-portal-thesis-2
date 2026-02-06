@@ -21,7 +21,7 @@ const EvaluationAssignmentSchema = new Schema({
     final_submitted: { type: Boolean, default: false },
     submitted_at: { type: Date, default: null },
     last_draft_saved_at: { type: Date, default: null },
-}, { timestamps: true });
+}, { timestamps: true, bufferCommands: false });
 
 EvaluationAssignmentSchema.pre("save", function () {
     // Once finalized, keep completed
@@ -29,7 +29,7 @@ EvaluationAssignmentSchema.pre("save", function () {
         this.completion_status = true;
         return;
     }
-}, { timestamps: true });
+});
 
 EvaluationAssignmentSchema.pre("save", function () {
     if (

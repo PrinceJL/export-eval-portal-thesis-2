@@ -4,51 +4,65 @@ Github Repository for the Thesis Evaluation Portal
 ## Prerequisites
 
 Ensure you have the following installed:
+- **Node.js**
 - **MongoDB Community Server**
 - **PostgreSQL**
 
-## Local Setup and Manual Testing
+## Environment Configuration
+**Important:** For the `.env` file, please message **Prince** directly to obtain the necessary environment variables and configuration.
 
-### 1. Environment Configuration
-Check `backend/.env` and ensure the database credentials match your local setup.
-- **MongoDB:** `MONGO_URI`
-- **PostgreSQL:** `PG_HOST`, `PG_PORT`, `PG_USER`, `PG_PASSWORD`, `PG_DB`
 
-### 2. Database Initialization
-Run the initialization utility to create the PostgreSQL database:
+## Global Deployment (Vercel)
+You can access the deployed application here:
+**Link:** [https://testing-portal-9buohs1xw-clefts-projects.vercel.app/admin/evaluations](https://testing-portal-9buohs1xw-clefts-projects.vercel.app/admin/evaluations)
+
+### Test Credentials
+Use the following credentials to log in:
+
+- **Expert:** 
+  - Username: `expert1`
+  - Password: `pass123`
+
+- **Admin:**
+  - Username: `admin1`
+  - Password: `pass123`
+
+## Local Development Setup
+
+### 1. Initial Setup
+Install dependencies:
 ```powershell
-cd backend
-node create_db_util.js
+npm install
 ```
 
-### 3. Database Seeding
-Sync the schema and create test accounts:
+### 2. Database Seeding (Dont do this anymore unless you plan to have a new DB)
+Initialize the database and create the default admin account:
 ```powershell
-# In the backend directory
-node seed_admin.js
-node seed_user.js
-```
-**Test Credentials:**
-- **Admin:** `admin2` / `pass123` / Group: `TEAM404`
-- **Expert:** `expert1` / `pass123` / Group: `TEAM404`
-
-### 4. Running the Application
-
-#### Backend
-```powershell
-cd backend
-npm run dev
+npm run seed:admin
+# Note: Ensure PostgreSQL is running before executing this command.
 ```
 
-#### Frontend
+### 3. Running the Application
+You can run both the frontend and backend concurrently:
 ```powershell
-cd frontend
+npm run dev:all
+```
+
+Or run them separately in different terminals:
+
+**Backend:**
+```powershell
+npm run dev:server
+```
+
+**Frontend:**
+```powershell
 npm run dev
 ```
 
 ## Verification
 
 ### Manual Verification
-1. **Login:** Navigate to the frontend URL and attempt to login with the seeded `admin2` or `expert1` credentials.
-2. **Navigation:** Verify that the dashboard loads and navigation works.
-3. **Messaging (if implemented):** Test sending a message between an Expert and Admin.
+1. **Login:** Navigate to the Localhost URL (usually http://localhost:5173) or the Vercel link.
+2. **Credentials:** Attempt to login with the `expert1` or `admin1` credentials listed above.
+3. **Navigation:** Verify that the dashboard loads and navigation works.
