@@ -1,7 +1,6 @@
 const evaluationService = require("../services/evaluation.service");
 
 // Eval V2 (Mongo) services (assignment + scoring definitions)
-const evalTestService = require("../models/evalV2/eval_test.service");
 const assignmentService = require("../models/evalV2/services/eval_assignment.service");
 const scoringService = require("../models/evalV2/services/eval_score.service");
 
@@ -45,7 +44,7 @@ async function getMyAssignments(req, res) {
   try {
     const userId = getAuthedUserId(req);
     const assignments = await assignmentService.getAssignments({
-      user_assigned: String(userId)
+      user_assigned: req.user.id
     });
     res.json(assignments);
   } catch (err) {
