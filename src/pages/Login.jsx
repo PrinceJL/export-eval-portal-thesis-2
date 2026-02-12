@@ -55,13 +55,16 @@ export default function Login() {
 
   return (
     <div
-      className="login-page"
+      className={`login-page${showLoginTransition ? ' is-transitioning' : ''}`}
       style={{
         minHeight: '100svh',
         padding: '24px 16px',
         display: 'grid',
         placeItems: 'center',
-        background: 'linear-gradient(180deg, #99d3ff 0%, #ccecff 42%, #e8f6ff 72%, #f7fbff 100%)',
+        background: showLoginTransition
+          ? '#050505'
+          : 'linear-gradient(180deg, #99d3ff 0%, #ccecff 42%, #e8f6ff 72%, #f7fbff 100%)',
+        transition: 'background 320ms ease',
         position: 'relative',
         overflow: 'hidden'
       }}
@@ -78,7 +81,7 @@ export default function Login() {
         </div>
       ) : null}
 
-      <div className="login-card-shell">
+      <div className={`login-card-shell${showLoginTransition ? ' is-transitioning-out' : ''}`}>
         <div className="login-logo-behind">
           <div
             className="login-logo-animated"

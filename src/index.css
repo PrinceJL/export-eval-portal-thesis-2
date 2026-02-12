@@ -83,6 +83,17 @@ button:focus-visible {
   gap: 8px;
 }
 
+.login-page.is-transitioning .login-bg-motion {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.login-card-shell.is-transitioning-out {
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+  transition: opacity 220ms ease, transform 280ms ease;
+}
+
 .login-bg-motion {
   position: absolute;
   inset: -24%;
@@ -368,13 +379,10 @@ button:focus-visible {
 }
 
 @keyframes login-splash-sequence {
-  from {
-    opacity: 0;
-  }
-  12% {
+  0% {
     opacity: 1;
   }
-  78% {
+  88% {
     opacity: 1;
   }
   to {
@@ -387,12 +395,12 @@ button:focus-visible {
     opacity: 0;
     transform: translateY(10px) scale(0.95);
   }
-  20% {
+  18% {
     opacity: 1;
     transform: translateY(0) scale(1);
     filter: brightness(1.1) drop-shadow(0 12px 26px rgba(255, 255, 255, 0.17));
   }
-  74% {
+  88% {
     opacity: 1;
     transform: translateY(0) scale(1.01);
     filter: brightness(1.08) drop-shadow(0 10px 24px rgba(255, 255, 255, 0.14));
