@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { CircularProgressbarWithChildren, buildStyles } from "react-circular-progressbar";
@@ -22,8 +22,6 @@ export default function Dashboard() {
     // Expert State
     const [dimensions, setDimensions] = useState([]);
     const [evaluations, setEvaluations] = useState([]);
-    const scrollRef = useRef(null);
-    const [scrollIndex, setScrollIndex] = useState(0);
 
     // Mock performance (Expert)
     const userName = user?.username || "Guest";
@@ -46,50 +44,61 @@ export default function Dashboard() {
         }
     }, [isAdmin]);
 
-    // Auto-scroll dimensions (Expert only)
-    useEffect(() => {
-        if (isAdmin) return;
-        const interval = setInterval(() => {
-            if (dimensions.length <= 2) return;
-            setScrollIndex(prev => (prev + 1) % dimensions.length);
-            const scrollEl = scrollRef.current;
-            if (scrollEl) {
-                const cardWidth = scrollEl.children[0].offsetWidth;
-                scrollEl.scrollTo({
-                    left: scrollIndex * cardWidth,
-                    behavior: "smooth"
-                });
-            }
-        }, 3000);
-        return () => clearInterval(interval);
-    }, [scrollIndex, dimensions, isAdmin]);
+    const completedCount = useMemo(
+        () => evaluations.filter((item) => Boolean(item.completion_status)).length,
+        [evaluations]
+    );
+
+    const pendingCount = Math.max(0, evaluations.length - completedCount);
+    const completionRate = evaluations.length
+        ? Math.round((completedCount / evaluations.length) * 100)
+        : 0;
+
+    const averageDimensionScore = dimensions.length
+        ? (
+            dimensions.reduce(
+                (sum, dimension) => sum + Number(dimension.avgScore || 0),
+                0
+            ) / dimensions.length
+        ).toFixed(1)
+        : "0.0";
+
+    const upcomingDeadline = useMemo(() => {
+        const now = Date.now();
+        const next = evaluations
+            .filter((item) => !item.completion_status && item.deadline)
+            .map((item) => new Date(item.deadline))
+            .filter((date) => !Number.isNaN(date.getTime()) && date.getTime() >= now)
+            .sort((a, b) => a.getTime() - b.getTime())[0];
+
+        return next ? next.toLocaleDateString() : "No pending deadlines";
+    }, [evaluations]);
 
     if (isAdmin) {
         return (
-            <div className="min-h-screen w-full bg-base-100 px-6 py-8 space-y-8">
-                <div>
-                    <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                    <p className="opacity-60">System overview and health status</p>
-                </div>
+            <div className="min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+                <div className="mx-auto w-full max-w-[1240px] space-y-6">
+                    <div>
+                        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                        <p className="opacity-60">System overview and health status</p>
+                    </div>
 
-                {/* System Health Widget */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="card bg-base-100 shadow-xl border border-base-200">
-                        <div className="card-body">
-                            <h2 className="card-title mb-4">
-                                System Health
-                                <div className={`badge ${systemHealth?.status === 'OK' ? 'badge-success' : 'badge-error'} badge-sm`}>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
+                            <h2 className="mb-4 flex items-center gap-3 text-xl font-bold">
+                                <span>System Health</span>
+                                <span className={`badge ${systemHealth?.status === 'OK' ? 'badge-success' : 'badge-error'} badge-sm`}>
                                     {systemHealth?.status || 'LOADING'}
-                                </div>
+                                </span>
                             </h2>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between rounded-xl border border-base-300/70 bg-base-200/40 p-3">
                                     <span className="font-semibold">PostgreSQL Database</span>
                                     <span className={`badge ${systemHealth?.databases?.postgres === 'CONNECTED' ? 'badge-success' : 'badge-error'}`}>
                                         {systemHealth?.databases?.postgres || '...'}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                <div className="flex items-center justify-between rounded-xl border border-base-300/70 bg-base-200/40 p-3">
                                     <span className="font-semibold">MongoDB Database</span>
                                     <span className={`badge ${systemHealth?.databases?.mongodb === 'CONNECTED' ? 'badge-success' : 'badge-error'}`}>
                                         {systemHealth?.databases?.mongodb || '...'}
@@ -97,54 +106,46 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Evaluation Summary Widget */}
-                    <div className="card bg-base-100 shadow-xl border border-base-200">
-                        <div className="card-body">
-                            <h2 className="card-title mb-4">Evaluation Summary</h2>
-                            <div className="stats stats-vertical lg:stats-horizontal shadow bg-base-200 w-full">
-                                <div className="stat">
-                                    <div className="stat-title">Total Evaluations</div>
-                                    <div className="stat-value text-primary">{adminStats?.evaluations?.total || 0}</div>
-                                    <div className="stat-desc">All time assignments</div>
+                        <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
+                            <h2 className="mb-4 text-xl font-bold">Evaluation Summary</h2>
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                    <p className="text-xs uppercase tracking-wide opacity-70">Total</p>
+                                    <p className="mt-1 text-3xl font-bold text-primary">{adminStats?.evaluations?.total || 0}</p>
+                                    <p className="mt-1 text-xs opacity-60">All assignments</p>
                                 </div>
-                                <div className="stat">
-                                    <div className="stat-title">Completed</div>
-                                    <div className="stat-value text-accent">{adminStats?.evaluations?.completed || 0}</div>
-                                    <div className="stat-desc">Successfully finished</div>
+                                <div className="rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                    <p className="text-xs uppercase tracking-wide opacity-70">Completed</p>
+                                    <p className="mt-1 text-3xl font-bold text-success">{adminStats?.evaluations?.completed || 0}</p>
+                                    <p className="mt-1 text-xs opacity-60">Successfully finished</p>
                                 </div>
-                                <div className="stat">
-                                    <div className="stat-title">Pending</div>
-                                    <div className="stat-value text-warning">{adminStats?.evaluations?.pending || 0}</div>
-                                    <div className="stat-desc">Awaiting completion</div>
+                                <div className="rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                    <p className="text-xs uppercase tracking-wide opacity-70">Pending</p>
+                                    <p className="mt-1 text-3xl font-bold text-warning">{adminStats?.evaluations?.pending || 0}</p>
+                                    <p className="mt-1 text-xs opacity-60">Awaiting completion</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* User Stats Widget */}
-                <div className="card bg-base-100 shadow-xl border border-base-200">
-                    <div className="card-body">
-                        <h2 className="card-title">User Statistics</h2>
-                        <div className="flex items-center gap-6">
+                    <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
+                        <h2 className="text-xl font-bold">User Statistics</h2>
+                        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
                             <div className="avatar placeholder">
-                                <div className="bg-neutral text-neutral-content rounded-full w-20 h-20 flex items-center justify-center">
-                                    <span className="text-4xl font-bold">{adminStats?.users?.total || 0}</span>
+                                <div className="h-20 w-20 rounded-full bg-neutral text-neutral-content">
+                                    <span className="text-3xl font-bold">{adminStats?.users?.total || 0}</span>
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <p className="font-bold text-lg">Total Registered Users</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="badge badge-success badge-xs"></div>
-                                    <p className="text-sm opacity-70">
-                                        {adminStats?.users?.online || 0} Online
-                                    </p>
-                                </div>
-                                <p className="text-xs opacity-50">Experts, Admins, and Researchers</p>
+                                <p className="text-lg font-bold">Total Registered Users</p>
+                                <p className="text-sm opacity-70">
+                                    <span className="inline-flex h-2 w-2 rounded-full bg-success align-middle" />{" "}
+                                    {adminStats?.users?.online || 0} Online
+                                </p>
+                                <p className="text-xs opacity-60">Experts, Admins, and Researchers</p>
                             </div>
-                            <div className="ml-auto">
+                            <div className="sm:ml-auto">
                                 <Link to="/admin/users" className="btn btn-primary btn-sm">Manage Users</Link>
                             </div>
                         </div>
@@ -154,59 +155,101 @@ export default function Dashboard() {
         );
     }
 
-    // Expert View (Existing)
+    // Expert View
     return (
-        <div className="min-h-screen w-full bg-base-100 px-6 py-8 space-y-8">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold">Welcome, {userName}!</h1>
-                <p className="opacity-60">Overview of your evaluations and model performance</p>
-            </div>
+        <div className="min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+            <div className="mx-auto w-full max-w-[1240px] space-y-6 sm:space-y-8">
+                <section className="rounded-2xl border border-base-300/80 bg-gradient-to-br from-base-100 via-base-100 to-base-200/35 p-5 shadow-xl sm:p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">Welcome, {userName}!</h1>
+                            <p className="mt-1 text-sm opacity-70">Overview of your evaluations and model performance.</p>
+                        </div>
+                        <span className="badge badge-outline px-3 py-3 text-xs font-semibold tracking-wide">{user?.role || "EXPERT"}</span>
+                    </div>
 
-            {/* Overall Model Statistics */}
-            <div className="flex gap-6 relative min-h-[40vh]">
-                {/* Scrollable dimension cards */}
-                <div className="flex gap-4 overflow-x-auto flex-1 p-2 bg-base-200 rounded-lg shadow-md" ref={scrollRef}>
-                    {dimensions.map((d) => (
-                        <StatCard
-                            key={d.name}
-                            title={d.name}
-                            value={d.avgScore}
-                            subtitle={d.sentiment}
-                            style={{ minWidth: "250px", flexShrink: 0 }}
-                        />
-                    ))}
-                </div>
-
-                {/* Fixed half-circle performance */}
-                <div className="w-1/5 flex flex-col items-center justify-center p-4 bg-base-200 rounded-lg shadow-md">
-                    <div style={{ width: "160px", height: "80px" }}>
-                        <CircularProgressbarWithChildren
-                            value={currentPerformance}
-                            maxValue={maxPerformance}
-                            strokeWidth={16}
-                            styles={buildStyles({
-                                rotation: 0.75, // half-circle
-                                strokeLinecap: "round",
-                                pathColor: "#3B82F6",
-                                trailColor: "#E5E7EB",
-                            })}
-                        >
-                        </CircularProgressbarWithChildren>
-                        <div className="text-center">
-                            <strong>{currentPerformance}%</strong>
-                            <p className="text-sm opacity-70">Goal: {goalPerformance}%</p>
-                            <p className="mt-2 text-sm opacity-60">Model Version: {modelVersion}</p>
+                    <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide opacity-65">Assigned</p>
+                            <p className="mt-1 text-2xl font-bold">{evaluations.length}</p>
+                        </div>
+                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide opacity-65">Completed</p>
+                            <p className="mt-1 text-2xl font-bold text-success">{completedCount}</p>
+                        </div>
+                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide opacity-65">Pending</p>
+                            <p className="mt-1 text-2xl font-bold text-warning">{pendingCount}</p>
+                        </div>
+                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                            <p className="text-xs uppercase tracking-wide opacity-65">Avg. Score</p>
+                            <p className="mt-1 text-2xl font-bold text-primary">{averageDimensionScore}</p>
                         </div>
                     </div>
-                </div>
-            </div>
+                </section>
 
+                <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+                    <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-4 shadow-xl backdrop-blur-sm sm:p-5">
+                        <div className="flex items-center justify-between gap-3">
+                            <h2 className="text-xl font-bold">Dimension Performance</h2>
+                            <span className="text-xs font-medium opacity-60">{dimensions.length} dimensions</span>
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {dimensions.map((dimension) => (
+                                <StatCard
+                                    key={dimension.name}
+                                    title={dimension.name}
+                                    value={dimension.avgScore}
+                                    subtitle={dimension.sentiment}
+                                />
+                            ))}
+                        </div>
+                    </div>
 
-            {/* My Evaluations */}
-            <div className="space-y-4">
-                <h2 className="text-2xl font-bold">My Evaluations</h2>
-                <EvaluationTable evaluations={evaluations} />
+                    <aside className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
+                        <h2 className="text-lg font-bold">Model Goal Progress</h2>
+                        <p className="mt-1 text-sm opacity-65">Current run against your target.</p>
+                        <div className="mx-auto mt-5 h-44 w-44">
+                            <CircularProgressbarWithChildren
+                                value={currentPerformance}
+                                maxValue={maxPerformance}
+                                strokeWidth={9}
+                                styles={buildStyles({
+                                    strokeLinecap: "round",
+                                    pathColor: "#3B82F6",
+                                    trailColor: "rgba(148, 163, 184, 0.28)",
+                                })}
+                            >
+                                <div className="text-center">
+                                    <p className="text-3xl font-bold leading-none">{currentPerformance}%</p>
+                                    <p className="mt-1 text-xs font-medium opacity-70">Goal {goalPerformance}%</p>
+                                </div>
+                            </CircularProgressbarWithChildren>
+                        </div>
+                        <div className="mt-5 space-y-2 text-sm">
+                            <div className="flex items-center justify-between rounded-lg border border-base-300/70 bg-base-200/35 px-3 py-2">
+                                <span className="opacity-70">Completion rate</span>
+                                <span className="font-semibold">{completionRate}%</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border border-base-300/70 bg-base-200/35 px-3 py-2">
+                                <span className="opacity-70">Next deadline</span>
+                                <span className="font-semibold">{upcomingDeadline}</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border border-base-300/70 bg-base-200/35 px-3 py-2">
+                                <span className="opacity-70">Model version</span>
+                                <span className="font-semibold">{modelVersion}</span>
+                            </div>
+                        </div>
+                    </aside>
+                </section>
+
+                <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold">My Evaluations</h2>
+                        <span className="text-sm opacity-65">{evaluations.length} assignment(s)</span>
+                    </div>
+                    <EvaluationTable evaluations={evaluations} />
+                </section>
             </div>
         </div>
     );
