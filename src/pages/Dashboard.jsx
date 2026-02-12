@@ -132,9 +132,9 @@ export default function Dashboard() {
                     <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
                         <h2 className="text-xl font-bold">User Statistics</h2>
                         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
-                            <div className="avatar placeholder">
-                                <div className="h-20 w-20 rounded-full bg-neutral text-neutral-content">
-                                    <span className="text-3xl font-bold">{adminStats?.users?.total || 0}</span>
+                            <div className="avatar placeholder shrink-0">
+                                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-sky-300/35 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-900/20">
+                                    <span className="text-3xl font-extrabold leading-none">{adminStats?.users?.total || 0}</span>
                                 </div>
                             </div>
                             <div className="space-y-1">
