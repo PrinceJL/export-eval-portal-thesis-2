@@ -15,6 +15,56 @@ function fmtTime(d) {
   return date.toLocaleString();
 }
 
+function getRoleTheme(role) {
+  switch (String(role || '').toUpperCase()) {
+    case 'ADMIN':
+      return {
+        avatarBg: '#dc2626',
+        avatarText: '#fff5f5',
+        badgeBg: 'rgba(220, 38, 38, 0.14)',
+        badgeText: '#b91c1c',
+        badgeBorder: 'rgba(220, 38, 38, 0.32)'
+      };
+    case 'RESEARCHER':
+      return {
+        avatarBg: '#7c3aed',
+        avatarText: '#f6f0ff',
+        badgeBg: 'rgba(124, 58, 237, 0.14)',
+        badgeText: '#6d28d9',
+        badgeBorder: 'rgba(124, 58, 237, 0.32)'
+      };
+    case 'EXPERT':
+    default:
+      return {
+        avatarBg: '#0f766e',
+        avatarText: '#f0fdfa',
+        badgeBg: 'rgba(15, 118, 110, 0.14)',
+        badgeText: '#0f766e',
+        badgeBorder: 'rgba(15, 118, 110, 0.32)'
+      };
+  }
+}
+
+function toMediaUrl(url) {
+  if (!url) return '';
+  const raw = String(url);
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const normalizedInput = raw.startsWith('/api/uploads/')
+    ? raw.replace('/api/uploads/', '/uploads/')
+    : raw;
+
+  const normalizedPath = normalizedInput.startsWith('/') ? normalizedInput : `/${normalizedInput}`;
+  const safePath = encodeURI(normalizedPath);
+  try {
+    const apiBase = getApiBaseUrl();
+    const origin = new URL(apiBase, window.location.origin).origin;
+    return `${origin}${safePath}`;
+  } catch {
+    return safePath;
+  }
+}
+
 export default function Messaging() {
   const { user } = useAuth();
   const [contacts, setContacts] = useState([]);
@@ -33,6 +83,8 @@ export default function Messaging() {
     if (!selected) return '';
     return convoId(user.id, selected.id);
   }, [selected, user.id]);
+
+  const selectedRoleTheme = useMemo(() => getRoleTheme(selected?.role), [selected?.role]);
 
   async function loadContacts() {
     const data = await apiFetch('/messages/contacts');
@@ -88,10 +140,16 @@ export default function Messaging() {
   async function handleFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!selected) {
+      setError('Select a contact before uploading files.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     // 10MB limit check client-side
     if (file.size > 10 * 1024 * 1024) {
       setError('File size exceeds 10MB limit.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -110,7 +168,15 @@ export default function Messaging() {
         body: formData
       });
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(data?.error || data?.message || `Upload failed (${res.status})`);
+      }
       const attachment = await res.json();
 
       // Auto-send the message with the attachment
@@ -143,8 +209,8 @@ export default function Messaging() {
   }
 
   function renderAttachment(att) {
-    const baseUrl = getApiBaseUrl();
-    const fullUrl = `${baseUrl}${att.url}`;
+    const fullUrl = toMediaUrl(att?.url);
+    if (!fullUrl) return null;
 
     if (att.type === 'image') {
       return (
@@ -222,29 +288,59 @@ export default function Messaging() {
             <h2 className="font-semibold text-lg">Contacts</h2>
           </div>
           <div className="overflow-y-auto flex-1 p-2 space-y-3">
-            {contacts.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setSelected(c)}
-                className={`w-full text-left p-3 rounded-lg transition-all flex items-center gap-3 border-2 ${selected?.id === c.id
-                  ? 'bg-primary text-primary-content border-primary shadow-md'
-                  : 'bg-base-100/50 hover:bg-base-200 text-base-content border-white/30 hover:border-white/50'
-                  }`}
-              >
-                <div className={`avatar placeholder`}>
-                  <div className={`${selected?.id === c.id ? 'bg-primary-content text-primary' : 'bg-neutral text-neutral-content'} rounded-full w-10`}>
-                    <span className="text-xs uppercase">{c.username.substring(0, 2)}</span>
+            {contacts.map((c) => {
+              const isActive = selected?.id === c.id;
+              const roleTheme = getRoleTheme(c.role);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelected(c)}
+                  className={`w-full text-left p-3 rounded-lg transition-all flex items-center gap-3 border-2 ${isActive
+                    ? 'bg-primary text-primary-content border-primary shadow-md'
+                    : 'bg-base-100/50 hover:bg-base-200 text-base-content border-white/30 hover:border-white/50'
+                    }`}
+                >
+                  <div className="avatar">
+                    <div
+                      className="rounded-full w-10 h-10 flex items-center justify-center"
+                      style={{
+                        background: roleTheme.avatarBg,
+                        color: roleTheme.avatarText
+                      }}
+                    >
+                      <span className="text-[11px] font-semibold uppercase tracking-wide leading-none">
+                        {String(c.username || 'U').slice(0, 2)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold truncate">{c.username}</div>
-                  <div className={`text-xs truncate ${selected?.id === c.id ? 'text-primary-content/80' : 'text-base-content/60'}`}>
-                    {c.role} • {c.group}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold truncate">{c.username}</div>
+                    <div className={`mt-1 flex items-center gap-1.5 text-xs truncate ${isActive ? 'text-primary-content/80' : 'text-base-content/65'}`}>
+                      <span
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-full border font-semibold tracking-wide"
+                        style={isActive
+                          ? {
+                            background: 'rgba(255,255,255,0.2)',
+                            borderColor: 'rgba(255,255,255,0.38)',
+                            color: 'rgba(255,255,255,0.95)'
+                          }
+                          : {
+                            background: roleTheme.badgeBg,
+                            color: roleTheme.badgeText,
+                            borderColor: roleTheme.badgeBorder
+                          }}
+                      >
+                        {c.role}
+                      </span>
+                      <span className={isActive ? 'text-primary-content/85' : 'text-base-content/60'}>
+                        {c.group}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
             {!contacts.length ? (
               <div className="p-8 text-center text-base-content/50">
                 <p>No contacts found.</p>
@@ -270,14 +366,32 @@ export default function Messaging() {
               {/* Chat Header */}
               <div className="p-4 border-b border-base-200 bg-base-100 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-10">
-                      <span className="text-lg uppercase">{selected.username.substring(0, 1)}</span>
+                  <div className="avatar">
+                    <div
+                      className="rounded-full w-10 h-10 flex items-center justify-center"
+                      style={{
+                        background: selectedRoleTheme.avatarBg,
+                        color: selectedRoleTheme.avatarText
+                      }}
+                    >
+                      <span className="text-sm font-semibold uppercase leading-none">{String(selected.username || 'U').slice(0, 2)}</span>
                     </div>
                   </div>
                   <div>
                     <h3 className="font-bold text-lg leading-tight">{selected.username}</h3>
-                    <p className="text-xs text-base-content/60">{selected.role} • {selected.email}</p>
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-base-content/65">
+                      <span
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-full border font-semibold tracking-wide"
+                        style={{
+                          background: selectedRoleTheme.badgeBg,
+                          color: selectedRoleTheme.badgeText,
+                          borderColor: selectedRoleTheme.badgeBorder
+                        }}
+                      >
+                        {selected.role}
+                      </span>
+                      <span className="truncate">{selected.email}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -322,8 +436,8 @@ export default function Messaging() {
                   <button
                     className="btn btn-circle btn-primary btn-sm"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    title="Upload image or file"
+                    disabled={uploading || !selected}
+                    title={selected ? 'Upload image or file' : 'Select a contact first'}
                   >
                     {uploading ? (
                       <span className="loading loading-spinner loading-xs"></span>
