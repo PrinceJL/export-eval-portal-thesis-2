@@ -13,7 +13,9 @@ const EvaluationOutput = require("./sql/evaluation_output.model")(sequelize, Dat
 const EvaluationCriteria = require("./sql/evaluation_criteria.model")(sequelize, DataTypes);
 const EvaluationAssignment = require("./sql/evaluation_assignment.model")(sequelize, DataTypes);
 const EvaluationResponse = require("./sql/evaluation_response.model")(sequelize, DataTypes);
+
 const EvaluationNote = require("./sql/evaluation_note.model")(sequelize, DataTypes);
+const ContactInfo = require("./sql/contact_info.model")(sequelize, DataTypes);
 
 // Define SQL Relations
 // User <-> Assignment
@@ -56,7 +58,9 @@ module.exports = {
         EvaluationCriteria,
         EvaluationAssignment,
         EvaluationResponse,
-        EvaluationNote
+
+        EvaluationNote,
+        ContactInfo
     },
     mongo: {
         Message,

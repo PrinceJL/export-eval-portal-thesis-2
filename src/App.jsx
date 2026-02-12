@@ -12,7 +12,9 @@ import Messaging from './pages/Messaging';
 import Contact from './pages/Contact';
 import AdminEvaluations from './pages/AdminEvaluations';
 import AdminMaintenance from './pages/AdminMaintenance';
+
 import AdminUsers from './pages/AdminUsers';
+import AdminContact from './pages/AdminContact';
 import Maintenance from './pages/Maintenance';
 import NotFound from './pages/NotFound';
 
@@ -92,6 +94,15 @@ export default function App() {
           element={
             <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
               <AdminMaintenance />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/contact"
+          element={
+            <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
+              <AdminContact />
             </ProtectedRoute>
           }
         />

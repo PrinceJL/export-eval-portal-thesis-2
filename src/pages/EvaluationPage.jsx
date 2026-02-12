@@ -62,35 +62,80 @@ export default function EvaluationPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-r from-base-100 to-base-200">
-      {/* Chat Section*/}
-      <div className="flex-[3] min-w-[70%] p-8 overflow-y-auto">
-        <Typography variant="h5" className="font-bold mb-6 border-b pb-2">
-          {evaluation.filename} — {currentScoring.dimension_name}
-        </Typography>
+    <div className="flex h-screen bg-base-100 font-sans">
+      {/* Main Content Area (Left) */}
+      <div className="flex-1 flex flex-col h-full relative">
+        {/* Chat Scroll Area */}
+        <div className="flex-1 overflow-y-auto p-8 scroll-smooth">
+          <div className="max-w-4xl mx-auto w-full pb-10">
+            <Typography variant="h5" className="font-bold mb-8 text-2xl border-b pb-4 border-base-300">
+              {evaluation.filename} — <span className="text-primary">{currentScoring.dimension_name}</span>
+            </Typography>
 
-        <div className="space-y-8">
-          {evaluation.items.map((item, i) => (
-            <div key={i} className="space-y-2">
-              {/* Query now on the right */}
-              <div className="chat chat-end">
-                <div className="chat-bubble chat-bubble-primary">
-                  {item.query}
+            <div className="space-y-10">
+              {evaluation.items.map((item, i) => (
+                <div key={i} className="flex flex-col gap-4">
+                  {/* Query (Right - User) */}
+                  <div className="chat chat-end">
+                    <div className="chat-header opacity-50 text-xs mb-1 uppercase tracking-wide font-semibold">User Query</div>
+                    <div className="chat-bubble chat-bubble-info text-white shadow-sm text-lg leading-relaxed">
+                      {item.query}
+                    </div>
+                  </div>
+
+                  {/* Response (Left - System) */}
+                  <div className="chat chat-start">
+                    <div className="chat-header opacity-50 text-xs mb-1 uppercase tracking-wide font-semibold">Model Response</div>
+                    <div className="chat-bubble bg-base-200 text-base-content shadow-md text-lg leading-relaxed border border-base-300">
+                      {item.llm_response}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              {/* Response now on the left */}
-              <div className="chat chat-start">
-                <div className="chat-bubble chat-bubble-secondary">
-                  {item.llm_response}
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
+        </div>
+
+        {/* Navigation Bar (Bottom of Main Area) */}
+        <div className="p-4 bg-base-100 border-t border-base-300 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+          <Button
+            size="large"
+            variant="outlined"
+            disabled={dimensionIndex === 0}
+            onClick={() => setDimensionIndex((i) => i - 1)}
+          >
+            Previous
+          </Button>
+
+          <div className="text-sm font-medium opacity-50">
+            {dimensionIndex + 1} / {evaluation_scorings.length}
+          </div>
+
+          {isFinal ? (
+            <Button
+              size="large"
+              variant="contained"
+              color="success"
+              onClick={handleSubmit}
+              disabled={!scores[currentScoring._id]}
+            >
+              Submit Evaluation
+            </Button>
+          ) : (
+            <Button
+              size="large"
+              variant="contained"
+              onClick={() => setDimensionIndex((i) => i + 1)}
+              disabled={!scores[currentScoring._id]}
+            >
+              Next Dimension
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Scoring Section (now 20%) */}
-      <div className="w-1/5 p-6 border-l bg-base-200 rounded-lg shadow-lg space-y-4 relative">
+      {/* Scoring Sidebar (Right) */}
+      <div className="w-[360px] flex-shrink-0 p-6 border-l border-base-300 bg-base-50 h-full overflow-y-auto custom-scrollbar">
         <div className="flex justify-between items-center">
           <Typography variant="subtitle1" className="font-semibold">
             Evaluation
@@ -142,35 +187,6 @@ export default function EvaluationPage() {
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="fixed bottom-0 left-0 w-full bg-base-100 border-t p-4 flex justify-between shadow-lg">
-        <Button
-          variant="outlined"
-          disabled={dimensionIndex === 0}
-          onClick={() => setDimensionIndex((i) => i - 1)}
-        >
-          Previous
-        </Button>
-
-        {isFinal ? (
-          <Button
-            variant="contained"
-            color="success"
-            onClick={handleSubmit}
-            disabled={!scores[currentScoring._id]}
-          >
-            Submit
-          </Button>
-        ) : (
-          <Button
-            variant="contained"
-            onClick={() => setDimensionIndex((i) => i + 1)}
-            disabled={!scores[currentScoring._id]}
-          >
-            Next
-          </Button>
-        )}
-      </div>
     </div>
   );
 }

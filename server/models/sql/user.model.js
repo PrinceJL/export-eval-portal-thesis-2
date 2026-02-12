@@ -29,6 +29,9 @@ module.exports = (sequelize, DataTypes) => {
         lastLogin: {
             type: DataTypes.DATE
         },
+        lastActiveAt: {
+            type: DataTypes.DATE
+        },
         isActive: {
             type: DataTypes.BOOLEAN,
             defaultValue: true

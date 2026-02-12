@@ -122,6 +122,30 @@ async function getAssignmentById(req, res) {
 
     const evalScorings = Object.values(groupedCriteria);
 
+    // Parse items from output_text. 
+    // Try JSON first, fallback to legacy text format
+    let parsedItems = [];
+    try {
+      const raw = jsonObj.output?.output_text;
+      if (raw && (raw.startsWith('[') || raw.startsWith('{'))) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) parsedItems = parsed;
+        else if (parsed.items) parsedItems = parsed.items;
+      }
+    } catch (e) {
+      // Ignore JSON error, try legacy
+    }
+
+    if (parsedItems.length === 0 && jsonObj.output?.output_text) {
+      // Fallback Legacy: "[Query]: ... [Response]: ..."
+      parsedItems = [{
+        query: jsonObj.output?.output_text?.split("[Response]:")[0]?.replace("[Query]:", "")?.trim() || "Query text unavailable",
+        llm_response: jsonObj.output?.output_text?.split("[Response]:")[1]?.trim() || jsonObj.output?.output_text,
+        rag_output: "Hidden context",
+        reasoning_output: "Hidden reasoning"
+      }];
+    }
+
     const result = {
       _id: jsonObj.id,
       date_assigned: jsonObj.assigned_at,
@@ -131,13 +155,7 @@ async function getAssignmentById(req, res) {
         _id: jsonObj.output_id,
         filename: `Evaluation ${jsonObj.output?.modelVersion?.model_name || 'Item'}`,
         rag_version: jsonObj.output?.modelVersion?.version || 'v1.0',
-        // Parse items from output_text. We stored text as: "[Query]: ... [Response]: ..."
-        items: [{
-          query: jsonObj.output?.output_text?.split("[Response]:")[0]?.replace("[Query]:", "")?.trim() || "Query text unavailable",
-          llm_response: jsonObj.output?.output_text?.split("[Response]:")[1]?.trim() || jsonObj.output?.output_text,
-          rag_output: "Hidden context",
-          reasoning_output: "Hidden reasoning"
-        }]
+        items: parsedItems
       },
       evaluation_scorings: evalScorings,
       ...jsonObj

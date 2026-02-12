@@ -5,7 +5,9 @@ const expertRoutes = require("./routes/expert.routes");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const systemRoutes = require("./routes/system.routes");
+
 const messageRoutes = require("./routes/message.routes");
+const contactRoutes = require("./routes/contact.routes");
 
 const app = express();
 
@@ -19,9 +21,18 @@ let isConnected = false;
 const connectDB = async () => {
     if (isConnected) return;
     try {
+        console.log("Connecting to MongoDB...");
         await connectMongo();
-        await sql.sequelize.authenticate();
-        console.log("Database connections established");
+        console.log("MongoDB connected. Connecting to Postgres...");
+
+        // Race authenticate with a timeout to detect hangs
+        const authPromise = sql.sequelize.authenticate();
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Postgres connection timeout (10s)")), 10000)
+        );
+
+        await Promise.race([authPromise, timeoutPromise]);
+        console.log("Postgres connected. Database connections established");
         isConnected = true;
     } catch (error) {
         console.error("Database connection failed:", error);
@@ -55,6 +66,8 @@ app.use("/api/system", systemRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/expert", expertRoutes);
+
 app.use("/api/admin", adminRoutes);
+app.use("/api/contact", contactRoutes);
 
 

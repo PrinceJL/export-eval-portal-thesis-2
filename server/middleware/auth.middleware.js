@@ -1,9 +1,10 @@
 const jwt = require("jsonwebtoken");
+const trackActivity = require("./activity.middleware");
 
 /**
  * Middleware to authenticate requests using JWT.
  */
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -19,6 +20,10 @@ const authenticate = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret_key");
         req.user = decoded;
+
+        // Track activity
+        await trackActivity(req, res, () => { });
+
         next();
     } catch (err) {
         // Return 401 so the frontend triggers auto-logout

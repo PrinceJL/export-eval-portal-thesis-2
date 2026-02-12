@@ -8,7 +8,6 @@ export default function Login() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [group, setGroup] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +16,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login({ username, password, group });
+      await login({ username, password });
       nav('/dashboard', { replace: true });
     } catch (err) {
       setError(err?.message || 'Login failed');
@@ -27,41 +26,62 @@ export default function Login() {
   };
 
   return (
-    <div className="container" style={{ display: 'grid', placeItems: 'center', minHeight: 'calc(100vh - 40px)' }}>
-      <div className="card" style={{ width: '100%', maxWidth: 420 }}>
-        <h1 style={{ marginTop: 0, marginBottom: 6 }}>Expert Portal Login</h1>
-        <div className="muted" style={{ marginBottom: 12 }}>
-          Enter your credentials.
+    <div className="min-h-screen flex items-center justify-center bg-base-200">
+      <div className="card w-full max-w-sm shadow-2xl bg-base-100">
+        <div className="card-body">
+          <h2 className="card-title justify-center text-2xl font-bold mb-4">Expert Portal Login</h2>
+
+          {error && (
+            <div className="alert alert-error mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Username</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter username"
+                className="input input-bordered w-full"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Password</span>
+              </label>
+              <input
+                type="password"
+                placeholder="Enter password"
+                className="input input-bordered w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            <div className="form-control mt-6">
+              <button className="btn btn-primary" disabled={loading}>
+                {loading ? <span className="loading loading-spinner"></span> : 'Login'}
+              </button>
+            </div>
+
+            <div className="text-center mt-2">
+              <p className="text-xs text-base-content/60">
+                Tip: If you don't have a user yet, run the backend seed script.
+              </p>
+            </div>
+          </form>
         </div>
-
-        {error ? <div className="alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 10 }}>
-          <input
-            className="input"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-          />
-
-          <input
-            className="input"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-
-          <button className="btn btn-primary" disabled={loading}>
-            {loading ? 'Signing in…' : 'Login'}
-          </button>
-
-          <div className="muted" style={{ fontSize: 13 }}>
-            Tip: If you don't have a user yet, run the backend seed script.
-          </div>
-        </form>
       </div>
     </div>
   );

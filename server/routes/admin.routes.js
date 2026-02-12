@@ -26,11 +26,17 @@ router.get("/evaluations", adminController.listEvaluations);
 router.post("/evaluations", adminController.createEvaluation);
 
 // Assignments
+// Assignments
 router.get("/assignments", adminController.listAssignments);
 router.post("/assignments", adminController.createAssignment);
+router.patch("/assignments/:id", adminController.updateAssignment);
+router.delete("/assignments/:id", adminController.deleteAssignment);
 
 // Maintenance
 router.get("/maintenance", adminController.getMaintenance);
 router.put("/maintenance", adminController.setMaintenance);
+
+// Stats
+router.get("/stats", adminController.getDashboardStats);
 
 module.exports = router;
