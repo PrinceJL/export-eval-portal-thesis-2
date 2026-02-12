@@ -1,22 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
   const nav = useNavigate();
+  const loginLogo = '/images/logo-login.png';
 
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!error) return undefined;
+    const timer = window.setTimeout(() => {
+      setError('');
+    }, 15000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
+
   const onSubmit = async (e) => {
     e.preventDefault();
+
+    if (!identifier.trim() || !password) {
+      setError('Please enter your username/email and password.');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
-      await login({ username, password });
+      await login({ username: identifier.trim(), password });
       nav('/dashboard', { replace: true });
     } catch (err) {
       setError(err?.message || 'Login failed');
@@ -26,61 +42,93 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200">
-      <div className="card w-full max-w-sm shadow-2xl bg-base-100">
-        <div className="card-body">
-          <h2 className="card-title justify-center text-2xl font-bold mb-4">Expert Portal Login</h2>
+    <div
+      className="login-page"
+      style={{
+        minHeight: '100svh',
+        padding: '24px 16px',
+        display: 'grid',
+        placeItems: 'center',
+        background: 'linear-gradient(180deg, #99d3ff 0%, #ccecff 42%, #e8f6ff 72%, #f7fbff 100%)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <div className="login-bg-motion" aria-hidden="true" />
 
-          {error && (
-            <div className="alert alert-error mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <span>{error}</span>
-            </div>
-          )}
+      <div className="login-card-shell">
+        <div className="login-logo-behind">
+          <div
+            className="login-logo-animated"
+            role="img"
+            aria-label="Login logo"
+            style={{ '--login-logo-url': `url("${loginLogo}")` }}
+          />
+          <img
+            src={loginLogo}
+            alt="Login logo"
+            className="login-logo-fallback"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        </div>
 
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Username</span>
-              </label>
+        <div
+          className="card login-card"
+        >
+          <h2
+            className="login-title"
+            style={{ margin: 0, textAlign: 'center', color: '#1f2937', fontWeight: 700 }}
+          >
+            Welcome back
+          </h2>
+          <div className="login-subtitle" style={{ marginTop: 6, textAlign: 'center', color: '#6b7280' }}>
+            Sign in with your assigned portal account.
+          </div>
+
+          {error ? <div className="login-error" style={{ marginTop: 14 }}>{error}</div> : null}
+
+          <form onSubmit={onSubmit} className="login-form" style={{ display: 'grid', gap: 12, marginTop: 16 }}>
+            <input
+              className="input login-input"
+              placeholder="Email address or username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
+              autoFocus
+            />
+
+            <div className="login-password-wrap">
               <input
-                type="text"
-                placeholder="Enter username"
-                className="input input-bordered w-full"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                required
-              />
-            </div>
-
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Password</span>
-              </label>
-              <input
-                type="password"
-                placeholder="Enter password"
-                className="input input-bordered w-full"
+                className="input login-input"
+                placeholder="Password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
-                required
+                style={{
+                  paddingRight: 78
+                }}
               />
-            </div>
-
-            <div className="form-control mt-6">
-              <button className="btn btn-primary" disabled={loading}>
-                {loading ? <span className="loading loading-spinner"></span> : 'Login'}
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="login-show-password"
+              >
+                {showPassword ? 'Hide' : 'Show'}
               </button>
             </div>
 
-            <div className="text-center mt-2">
-              <p className="text-xs text-base-content/60">
-                Tip: If you don't have a user yet, run the backend seed script.
-              </p>
-            </div>
+            <button
+              className="btn btn-primary login-submit"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? 'Signing in...' : 'Get Started'}
+            </button>
           </form>
+
         </div>
       </div>
     </div>
