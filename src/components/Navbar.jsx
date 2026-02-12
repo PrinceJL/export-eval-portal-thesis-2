@@ -40,6 +40,7 @@ function DesktopIcon() {
 
 export default function Navbar() {
   const { isAuthed, user, logout } = useAuth();
+  const THEME_SWITCH_MS = 280;
   const [themeMode, setThemeMode] = useState(() => {
     try {
       return localStorage.getItem("themeMode") || "auto";
@@ -50,6 +51,22 @@ export default function Navbar() {
   const [resolvedTheme, setResolvedTheme] = useState("light");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef(null);
+  const hasThemeMountedRef = useRef(false);
+  const themeSwitchTimerRef = useRef(null);
+
+  const startThemeSwitchAnimation = () => {
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+
+    if (themeSwitchTimerRef.current) {
+      window.clearTimeout(themeSwitchTimerRef.current);
+    }
+
+    themeSwitchTimerRef.current = window.setTimeout(() => {
+      root.classList.remove("theme-switching");
+      themeSwitchTimerRef.current = null;
+    }, THEME_SWITCH_MS);
+  };
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "RESEARCHER";
   const displayName = user?.username || "User";
@@ -121,6 +138,13 @@ export default function Navbar() {
 
     const applyTheme = () => {
       const nextResolved = themeMode === "auto" ? (media.matches ? "dark" : "light") : themeMode;
+
+      if (hasThemeMountedRef.current) {
+        startThemeSwitchAnimation();
+      } else {
+        hasThemeMountedRef.current = true;
+      }
+
       setResolvedTheme(nextResolved);
       document.documentElement.setAttribute("data-theme", nextResolved);
       document.documentElement.style.colorScheme = nextResolved;
@@ -161,6 +185,14 @@ export default function Navbar() {
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
+  }, []);
+
+  useEffect(() => () => {
+    if (themeSwitchTimerRef.current) {
+      window.clearTimeout(themeSwitchTimerRef.current);
+      themeSwitchTimerRef.current = null;
+    }
+    document.documentElement.classList.remove("theme-switching");
   }, []);
 
   if (!isAuthed) return null;

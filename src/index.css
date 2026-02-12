@@ -28,6 +28,18 @@ body {
   min-height: 100vh;
 }
 
+:root.theme-switching,
+:root.theme-switching * {
+  transition:
+    background 280ms ease,
+    background-color 280ms ease,
+    color 280ms ease,
+    border-color 280ms ease,
+    box-shadow 280ms ease,
+    fill 280ms ease,
+    stroke 280ms ease;
+}
+
 
 h1 {
   font-size: 3.2em;
@@ -527,6 +539,11 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root.theme-switching,
+  :root.theme-switching * {
+    transition: none !important;
+  }
+
   .login-bg-motion,
   .login-bg-motion::before,
   .login-bg-motion::after,
