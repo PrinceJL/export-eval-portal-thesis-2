@@ -19,28 +19,29 @@ function getRoleTheme(role) {
   switch (String(role || '').toUpperCase()) {
     case 'ADMIN':
       return {
-        avatarBg: '#dc2626',
-        avatarText: '#fff5f5',
-        badgeBg: 'rgba(220, 38, 38, 0.14)',
-        badgeText: '#b91c1c',
-        badgeBorder: 'rgba(220, 38, 38, 0.32)'
+        avatarBg: '#38bdf8',
+        avatarText: '#082f49',
+        badgeBg: 'rgba(56, 189, 248, 0.14)',
+        badgeText: '#7dd3fc',
+        badgeBorder: 'rgba(56, 189, 248, 0.34)'
       };
     case 'RESEARCHER':
       return {
-        avatarBg: '#7c3aed',
-        avatarText: '#f6f0ff',
-        badgeBg: 'rgba(124, 58, 237, 0.14)',
-        badgeText: '#6d28d9',
-        badgeBorder: 'rgba(124, 58, 237, 0.32)'
+        avatarBg: '#e5e7eb',
+        avatarText: '#334155',
+        badgeBg: 'rgba(229, 231, 235, 0.18)',
+        badgeText: '#e2e8f0',
+        badgeBorder: 'rgba(226, 232, 240, 0.34)'
       };
+    case 'EVALUATOR':
     case 'EXPERT':
     default:
       return {
-        avatarBg: '#0f766e',
-        avatarText: '#f0fdfa',
-        badgeBg: 'rgba(15, 118, 110, 0.14)',
-        badgeText: '#0f766e',
-        badgeBorder: 'rgba(15, 118, 110, 0.32)'
+        avatarBg: '#d6b89a',
+        avatarText: '#4a2f1d',
+        badgeBg: 'rgba(214, 184, 154, 0.18)',
+        badgeText: '#e7c9ac',
+        badgeBorder: 'rgba(214, 184, 154, 0.34)'
       };
   }
 }
