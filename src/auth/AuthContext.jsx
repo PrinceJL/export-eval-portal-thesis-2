@@ -6,6 +6,8 @@ const AuthContext = createContext(null);
 const IDLE_MINUTES = Number(import.meta.env.VITE_IDLE_MINUTES || 15); // auto-logout after inactivity
 const LOGOUT_TRANSITION_ENTER_MS = 220;
 const LOGOUT_TRANSITION_EXIT_MS = 340;
+const LOGIN_TRANSITION_HOLD_MS = Number(import.meta.env.VITE_LOGIN_TRANSITION_HOLD_MS || 1050);
+const LOGIN_TRANSITION_FADE_MS = Number(import.meta.env.VITE_LOGIN_TRANSITION_FADE_MS || 420);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('accessToken'));
@@ -14,6 +16,7 @@ export function AuthProvider({ children }) {
     return raw ? JSON.parse(raw) : null;
   });
   const [logoutTransitionPhase, setLogoutTransitionPhase] = useState('idle');
+  const [loginTransitionPhase, setLoginTransitionPhase] = useState('idle');
 
   const isAuthed = !!token && !!user;
 
@@ -21,12 +24,20 @@ export function AuthProvider({ children }) {
   const idleTimer = useRef(null);
   const lastActivity = useRef(Date.now());
   const logoutTransitionTimers = useRef([]);
+  const loginTransitionTimers = useRef([]);
 
   function clearLogoutTransitionTimers() {
     for (const timerId of logoutTransitionTimers.current) {
       window.clearTimeout(timerId);
     }
     logoutTransitionTimers.current = [];
+  }
+
+  function clearLoginTransitionTimers() {
+    for (const timerId of loginTransitionTimers.current) {
+      window.clearTimeout(timerId);
+    }
+    loginTransitionTimers.current = [];
   }
 
   function clearAuthState() {
@@ -61,7 +72,10 @@ export function AuthProvider({ children }) {
     }
   }
 
-  useEffect(() => () => clearLogoutTransitionTimers(), []);
+  useEffect(() => () => {
+    clearLogoutTransitionTimers();
+    clearLoginTransitionTimers();
+  }, []);
 
   function scheduleIdleLogout() {
     clearIdleTimer();
@@ -118,6 +132,21 @@ export function AuthProvider({ children }) {
     setUser(data.user);
   };
 
+  const startLoginTransition = () => {
+    clearLoginTransitionTimers();
+    setLoginTransitionPhase('in');
+
+    const toOut = window.setTimeout(() => {
+      setLoginTransitionPhase('out');
+    }, LOGIN_TRANSITION_HOLD_MS);
+
+    const toIdle = window.setTimeout(() => {
+      setLoginTransitionPhase('idle');
+    }, LOGIN_TRANSITION_HOLD_MS + LOGIN_TRANSITION_FADE_MS);
+
+    loginTransitionTimers.current.push(toOut, toIdle);
+  };
+
   const setPresenceStatus = async (status) => {
     if (!isAuthed) return;
     const data = await apiFetch('/auth/presence', {
@@ -134,6 +163,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = ({ withTransition = false } = {}) => {
+    clearLoginTransitionTimers();
+    setLoginTransitionPhase('idle');
     notifyServerLogout(user?.id);
 
     if (!withTransition) {
@@ -159,8 +190,18 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ token, user, isAuthed, login, logout, setPresenceStatus, logoutTransitionPhase }),
-    [token, user, isAuthed, logoutTransitionPhase]
+    () => ({
+      token,
+      user,
+      isAuthed,
+      login,
+      logout,
+      setPresenceStatus,
+      logoutTransitionPhase,
+      loginTransitionPhase,
+      startLoginTransition
+    }),
+    [token, user, isAuthed, logoutTransitionPhase, loginTransitionPhase]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

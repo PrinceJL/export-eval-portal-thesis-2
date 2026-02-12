@@ -20,8 +20,9 @@ import Maintenance from './pages/Maintenance';
 import NotFound from './pages/NotFound';
 
 export default function App() {
-  const { logoutTransitionPhase } = useAuth();
+  const { logoutTransitionPhase, loginTransitionPhase } = useAuth();
   const showLogoutTransition = logoutTransitionPhase !== 'idle';
+  const showLoginTransition = loginTransitionPhase !== 'idle';
   const location = useLocation();
   const isLoginRoute = location.pathname === '/login';
   const routeTransitionKey = `${location.pathname}${location.search}`;
@@ -34,6 +35,15 @@ export default function App() {
           role="status"
           aria-label="Signing out"
         />
+      ) : null}
+      {showLoginTransition ? (
+        <div
+          className={`login-global-splash login-global-splash-${loginTransitionPhase}`}
+          role="status"
+          aria-label="Signing in"
+        >
+          <img src="/images/logo-login.png" alt="Portal logo" className="login-global-splash-logo" />
+        </div>
       ) : null}
       {!isLoginRoute ? <Navbar /> : null}
       <div key={routeTransitionKey} className="app-route-stage">

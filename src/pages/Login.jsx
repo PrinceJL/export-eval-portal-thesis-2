@@ -53,26 +53,20 @@ function EyeOffIcon() {
 }
 
 export default function Login() {
-  const { login, isAuthed } = useAuth();
+  const { login, isAuthed, startLoginTransition } = useAuth();
   const nav = useNavigate();
   const loginLogo = '/images/logo-login.png';
-  const LOGIN_SPLASH_MS = 1700;
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showLoginTransition, setShowLoginTransition] = useState(false);
-  const redirectTimerRef = useRef(null);
-
-  useEffect(() => () => {
-    if (redirectTimerRef.current) {
-      window.clearTimeout(redirectTimerRef.current);
-    }
-  }, []);
+  const didInitialAuthCheckRef = useRef(false);
 
   useEffect(() => {
+    if (didInitialAuthCheckRef.current) return;
+    didInitialAuthCheckRef.current = true;
     if (isAuthed) {
       nav('/dashboard', { replace: true });
     }
@@ -98,10 +92,8 @@ export default function Login() {
     setLoading(true);
     try {
       await login({ username: identifier.trim(), password });
-      setShowLoginTransition(true);
-      redirectTimerRef.current = window.setTimeout(() => {
-        nav('/dashboard', { replace: true });
-      }, LOGIN_SPLASH_MS);
+      startLoginTransition();
+      nav('/dashboard', { replace: true });
     } catch (err) {
       setError(err?.message || 'Login failed');
     } finally {
@@ -111,33 +103,20 @@ export default function Login() {
 
   return (
     <div
-      className={`login-page${showLoginTransition ? ' is-transitioning' : ''}`}
+      className="login-page"
       style={{
         minHeight: '100svh',
         padding: '24px 16px',
         display: 'grid',
         placeItems: 'center',
-        background: showLoginTransition
-          ? '#050505'
-          : 'linear-gradient(180deg, #99d3ff 0%, #ccecff 42%, #e8f6ff 72%, #f7fbff 100%)',
-        transition: 'background 320ms ease',
+        background: 'linear-gradient(180deg, #99d3ff 0%, #ccecff 42%, #e8f6ff 72%, #f7fbff 100%)',
         position: 'relative',
         overflow: 'hidden'
       }}
     >
       <div className="login-bg-motion" aria-hidden="true" />
-      {showLoginTransition ? (
-        <div
-          className="login-post-splash"
-          role="status"
-          aria-label="Signing in"
-          style={{ '--login-splash-ms': `${LOGIN_SPLASH_MS}ms` }}
-        >
-          <img src={loginLogo} alt="Portal logo" className="login-post-splash-logo" />
-        </div>
-      ) : null}
 
-      <div className={`login-card-shell${showLoginTransition ? ' is-transitioning-out' : ''}`}>
+      <div className="login-card-shell">
         <div className="login-logo-behind">
           <div
             className="login-logo-animated"
@@ -207,7 +186,7 @@ export default function Login() {
             <button
               className="btn btn-primary login-submit"
               type="submit"
-              disabled={loading || showLoginTransition}
+              disabled={loading}
             >
               {loading ? 'Signing in...' : 'Get Started'}
             </button>
