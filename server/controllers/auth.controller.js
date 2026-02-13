@@ -61,10 +61,16 @@ async function setPresence(req, res) {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const nextStatus = String(req.body?.status || "").toLowerCase();
-        if (!VALID_PRESENCE_STATUSES.has(nextStatus)) {
+        const requestedStatus = String(req.body?.status || "").toLowerCase();
+        if (!VALID_PRESENCE_STATUSES.has(requestedStatus)) {
             return res.status(400).json({ error: "Invalid presence status" });
         }
+
+        // Keep manual controls lightweight:
+        // online/idle are treated as automatic activity-based presence.
+        const nextStatus = (requestedStatus === "online" || requestedStatus === "idle")
+            ? "auto"
+            : requestedStatus;
 
         await mongo.SessionCache.updateMany(
             { userId },

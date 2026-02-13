@@ -77,13 +77,12 @@ export default function Navbar() {
   const displayEmail = user?.email || "No email on account";
   const avatarLetter = String(displayName).charAt(0).toUpperCase() || "U";
   const currentPresenceRaw = String(user?.presenceStatus || "online").toLowerCase();
-  const currentPresence = ["online", "idle", "dnd", "invisible"].includes(currentPresenceRaw)
+  const currentPresence = ["online", "dnd", "invisible"].includes(currentPresenceRaw)
     ? currentPresenceRaw
     : "online";
 
   const presenceOptions = [
-    { value: "online", label: "Online", color: "#22c55e" },
-    { value: "idle", label: "Idle", color: "#f59e0b" },
+    { value: "online", label: "Online", color: "#22c55e", description: "Automatic online, idle, and offline based on activity." },
     { value: "dnd", label: "Do Not Disturb", color: "#ef4444", description: "You will not receive desktop notifications" },
     { value: "invisible", label: "Invisible", color: "#94a3b8", description: "You will appear offline" }
   ];

@@ -7,6 +7,9 @@ const { sql, mongo } = require("../models");
 
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
 const ACTIVE_SESSION_WINDOW_MS = Number(process.env.ACTIVE_SESSION_WINDOW_MS || 15 * 60 * 1000);
+// Temporary rollout setting:
+// keep multi-device login allowed unless explicitly enabled.
+const ENFORCE_SINGLE_DEVICE_SESSION = String(process.env.ENFORCE_SINGLE_DEVICE_SESSION || "false").toLowerCase() === "true";
 
 function normalizePresenceStatus(value) {
     const s = String(value || "").toLowerCase();
@@ -65,9 +68,9 @@ async function login({ username, password, deviceFingerprint, req }) {
             .select({ presenceStatus: 1, deviceFingerprint: 1, lastActivity: 1, updatedAt: 1 });
         existingPresenceStatus = normalizePresenceStatus(existingSession?.presenceStatus);
 
-        // Strict single-session policy:
-        // deny login from another device while the current session is still active.
-        if (existingSession && isRecentlyActive(existingSession)) {
+        // Strict single-session policy (temporarily disabled by default).
+        // Set ENFORCE_SINGLE_DEVICE_SESSION=true to re-enable blocking.
+        if (ENFORCE_SINGLE_DEVICE_SESSION && existingSession && isRecentlyActive(existingSession)) {
             const sameDevice = String(existingSession.deviceFingerprint || "") === normalizedDeviceFingerprint;
             if (!sameDevice) {
                 const err = new Error("This account is already active on another device. Please logout there first.");

@@ -13,7 +13,8 @@ function convoId(a, b) {
 }
 
 const ONLINE_WINDOW_MS = Number(process.env.ONLINE_WINDOW_MS || 2 * 60 * 1000);
-const IDLE_WINDOW_MS = Number(process.env.IDLE_WINDOW_MS || 10 * 60 * 1000);
+const IDLE_DURATION_MS = Number(process.env.IDLE_DURATION_MS || 5 * 60 * 1000);
+const OFFLINE_WINDOW_MS = Number(process.env.OFFLINE_WINDOW_MS || ONLINE_WINDOW_MS + IDLE_DURATION_MS);
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
 
 function computePresence(lastActiveAt) {
@@ -26,7 +27,7 @@ function computePresence(lastActiveAt) {
   if (deltaMs <= ONLINE_WINDOW_MS) {
     return { isOnline: true, presenceStatus: "online" };
   }
-  if (deltaMs <= IDLE_WINDOW_MS) {
+  if (deltaMs <= OFFLINE_WINDOW_MS) {
     return { isOnline: false, presenceStatus: "idle" };
   }
   return { isOnline: false, presenceStatus: "offline" };
@@ -39,9 +40,8 @@ function normalizePresenceStatus(value) {
 
 function applyPresenceOverride(autoPresence, overrideStatus) {
   const status = normalizePresenceStatus(overrideStatus);
-  if (status === "auto") return autoPresence;
-  if (status === "online") return { isOnline: true, presenceStatus: "online" };
-  if (status === "idle") return { isOnline: false, presenceStatus: "idle" };
+  // "online"/"idle" act like auto so presence can move automatically.
+  if (status === "auto" || status === "online" || status === "idle") return autoPresence;
   if (status === "dnd") return { isOnline: true, presenceStatus: "dnd" };
   if (status === "invisible") return { isOnline: false, presenceStatus: "invisible" };
   return autoPresence;
