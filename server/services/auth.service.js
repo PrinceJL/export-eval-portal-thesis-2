@@ -79,7 +79,7 @@ async function login({ username, password, deviceFingerprint, req }) {
             }
         }
 
-        // Re-issue session (same device relogin, or stale previous session).
+        // Re-issue session
         await mongo.SessionCache.deleteMany({ userId: String(user.id) });
 
         const sessionId = makeSessionId();

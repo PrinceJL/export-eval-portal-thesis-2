@@ -182,7 +182,7 @@ export default function EvaluationPage() {
           ))}
         </ButtonGroup>
 
-        <div className="text-xs text-gray-500 text-center mt-4">
+        <div className="text-xs text-base-content/60 text-center mt-4">
           Dimension {dimensionIndex + 1} of {evaluation_scorings.length}
         </div>
       </div>
