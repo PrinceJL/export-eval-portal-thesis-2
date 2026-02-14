@@ -55,7 +55,7 @@ function EyeOffIcon() {
 export default function Login() {
   const { login, isAuthed, startLoginTransition } = useAuth();
   const nav = useNavigate();
-  const loginLogo = '/images/logo-login.png';
+  const loginLogo = '/images/logo-login.webp';
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');

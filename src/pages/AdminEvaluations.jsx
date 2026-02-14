@@ -16,6 +16,35 @@ function safeJsonParse(str) {
   }
 }
 
+const DEFAULT_BOOLEAN_CRITERIA = [
+  { value: 0, criteria_name: 'No', description: 'Condition not met' },
+  { value: 1, criteria_name: 'Yes', description: 'Condition met' }
+];
+
+function normalizeCriteriaInput(criteria, { booleanMode = false } = {}) {
+  if (!Array.isArray(criteria)) return [];
+
+  return criteria
+    .map((c) => {
+      const value = Number(c?.value);
+      if (!Number.isFinite(value)) return null;
+
+      const derivedName = booleanMode
+        ? (value === 1 ? 'Yes' : value === 0 ? 'No' : `Option ${value}`)
+        : `Score ${value}`;
+
+      const criteriaName = String(c?.criteria_name || c?.name || c?.label || '').trim() || derivedName;
+      const description = String(c?.description || '').trim();
+
+      return {
+        value,
+        criteria_name: criteriaName,
+        description: description || (booleanMode ? (value === 1 ? 'Condition met' : value === 0 ? 'Condition not met' : '') : '')
+      };
+    })
+    .filter(Boolean);
+}
+
 export default function AdminEvaluations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,6 +97,7 @@ export default function AdminEvaluations() {
   const [viewEval, setViewEval] = useState(null);
 
   const expertUsers = useMemo(() => users.filter((u) => u.role === 'EXPERT' && u.isActive), [users]);
+  const isBooleanScoring = scoreForm.type === 'Boolean';
 
   async function loadAll() {
     setLoading(true);
@@ -195,26 +225,53 @@ export default function AdminEvaluations() {
     setMsg('');
     setError('');
 
-    let criteria = [];
+    const booleanMode = scoreForm.type === 'Boolean';
+    let rawCriteria = [];
     if (scoreForm.criteriaJson.trim()) {
       const parsed = safeJsonParse(scoreForm.criteriaJson);
       if (!parsed.ok) {
         setError(`Invalid criteria JSON: ${parsed.error}`);
         return;
       }
-      criteria = parsed.value;
-      if (!Array.isArray(criteria)) {
+      rawCriteria = parsed.value;
+      if (!Array.isArray(rawCriteria)) {
         setError('Criteria JSON must be an array');
         return;
       }
+    }
+
+    let criteria = normalizeCriteriaInput(
+      rawCriteria.length ? rawCriteria : (booleanMode ? DEFAULT_BOOLEAN_CRITERIA : []),
+      { booleanMode }
+    );
+
+    if (booleanMode) {
+      const byValue = new Map();
+      for (const c of criteria) {
+        if (c.value === 0 || c.value === 1) byValue.set(c.value, c);
+      }
+      if (!byValue.has(0)) byValue.set(0, DEFAULT_BOOLEAN_CRITERIA[0]);
+      if (!byValue.has(1)) byValue.set(1, DEFAULT_BOOLEAN_CRITERIA[1]);
+      criteria = [byValue.get(0), byValue.get(1)];
+    }
+
+    const minRange = booleanMode ? 0 : Number(scoreForm.min_range);
+    const maxRange = booleanMode ? 1 : Number(scoreForm.max_range);
+    if (!Number.isFinite(minRange) || !Number.isFinite(maxRange)) {
+      setError('Min and Max must be valid numbers');
+      return;
+    }
+    if (minRange > maxRange) {
+      setError('Min cannot be greater than Max');
+      return;
     }
 
     const payload = {
       dimension_name: scoreForm.dimension_name.trim(),
       dimension_description: scoreForm.dimension_description.trim(),
       type: scoreForm.type,
-      min_range: Number(scoreForm.min_range),
-      max_range: Number(scoreForm.max_range),
+      min_range: minRange,
+      max_range: maxRange,
       criteria
     };
 
@@ -453,7 +510,22 @@ export default function AdminEvaluations() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="form-control">
                         <label className="label"><span className="label-text font-medium">Type</span></label>
-                        <select className="select select-bordered w-full" value={scoreForm.type} onChange={(e) => setScoreForm((p) => ({ ...p, type: e.target.value }))}>
+                        <select
+                          className="select select-bordered w-full"
+                          value={scoreForm.type}
+                          onChange={(e) => {
+                            const nextType = e.target.value;
+                            setScoreForm((p) => ({
+                              ...p,
+                              type: nextType,
+                              min_range: nextType === 'Boolean' ? 0 : p.min_range,
+                              max_range: nextType === 'Boolean' ? 1 : p.max_range,
+                              criteriaJson: nextType === 'Boolean' && !p.criteriaJson.trim()
+                                ? JSON.stringify(DEFAULT_BOOLEAN_CRITERIA, null, 2)
+                                : p.criteriaJson
+                            }));
+                          }}
+                        >
                           <option value="Likert">Likert</option>
                           <option value="Boolean">Boolean</option>
                         </select>
@@ -461,14 +533,29 @@ export default function AdminEvaluations() {
                       <div className="flex gap-2">
                         <div className="form-control w-full">
                           <label className="label"><span className="label-text font-medium">Min</span></label>
-                          <input type="number" className="input input-bordered w-full px-2" value={scoreForm.min_range} onChange={(e) => setScoreForm((p) => ({ ...p, min_range: e.target.value }))} />
+                          <input
+                            type="number"
+                            className="input input-bordered w-full px-2"
+                            value={scoreForm.min_range}
+                            disabled={isBooleanScoring}
+                            onChange={(e) => setScoreForm((p) => ({ ...p, min_range: e.target.value }))}
+                          />
                         </div>
                         <div className="form-control w-full">
                           <label className="label"><span className="label-text font-medium">Max</span></label>
-                          <input type="number" className="input input-bordered w-full px-2" value={scoreForm.max_range} onChange={(e) => setScoreForm((p) => ({ ...p, max_range: e.target.value }))} />
+                          <input
+                            type="number"
+                            className="input input-bordered w-full px-2"
+                            value={scoreForm.max_range}
+                            disabled={isBooleanScoring}
+                            onChange={(e) => setScoreForm((p) => ({ ...p, max_range: e.target.value }))}
+                          />
                         </div>
                       </div>
                     </div>
+                    {isBooleanScoring ? (
+                      <p className="text-xs opacity-70 -mt-2">Boolean uses a fixed range: 0 = No, 1 = Yes.</p>
+                    ) : null}
 
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Criteria JSON (Optional)</span></label>

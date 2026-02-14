@@ -14,6 +14,32 @@ function genTempPassword() {
   return `Temp${Math.random().toString(36).slice(2, 10)}!`;
 }
 
+const DEFAULT_BOOLEAN_CRITERIA = [
+  { value: 0, criteria_name: "No", description: "Condition not met" },
+  { value: 1, criteria_name: "Yes", description: "Condition met" }
+];
+
+function normalizeScoringCriteria(criteria, { booleanMode = false } = {}) {
+  if (!Array.isArray(criteria)) return [];
+
+  return criteria
+    .map((c) => {
+      const value = Number(c?.value);
+      if (!Number.isFinite(value)) return null;
+
+      const fallbackName = booleanMode
+        ? (value === 1 ? "Yes" : value === 0 ? "No" : `Option ${value}`)
+        : `Score ${value}`;
+
+      return {
+        value,
+        criteria_name: String(c?.criteria_name || c?.name || c?.label || "").trim() || fallbackName,
+        description: String(c?.description || "").trim() || (booleanMode ? (value === 1 ? "Condition met" : value === 0 ? "Condition not met" : "") : "")
+      };
+    })
+    .filter(Boolean);
+}
+
 // ------------------ USERS ------------------
 
 async function listUsers(req, res) {
@@ -133,7 +159,38 @@ async function listScorings(req, res) {
 
 async function createScoring(req, res) {
   try {
-    const scoring = await scoringService.createScoring(req.body);
+    const type = req.body?.type === "Boolean" ? "Boolean" : "Likert";
+    const booleanMode = type === "Boolean";
+    const min_range = booleanMode ? 0 : Number(req.body?.min_range);
+    const max_range = booleanMode ? 1 : Number(req.body?.max_range);
+
+    if (!Number.isFinite(min_range) || !Number.isFinite(max_range)) {
+      return res.status(400).json({ error: "min_range and max_range must be valid numbers" });
+    }
+    if (min_range > max_range) {
+      return res.status(400).json({ error: "min_range cannot be greater than max_range" });
+    }
+
+    let criteria = normalizeScoringCriteria(req.body?.criteria || [], { booleanMode });
+
+    if (booleanMode) {
+      const byValue = new Map();
+      for (const c of criteria) {
+        if (c.value === 0 || c.value === 1) byValue.set(c.value, c);
+      }
+      if (!byValue.has(0)) byValue.set(0, DEFAULT_BOOLEAN_CRITERIA[0]);
+      if (!byValue.has(1)) byValue.set(1, DEFAULT_BOOLEAN_CRITERIA[1]);
+      criteria = [byValue.get(0), byValue.get(1)];
+    }
+
+    const scoring = await scoringService.createScoring({
+      dimension_name: req.body?.dimension_name,
+      dimension_description: req.body?.dimension_description,
+      type,
+      min_range,
+      max_range,
+      criteria
+    });
     res.status(201).json(scoring);
   } catch (e) {
     res.status(400).json({ error: e.message || "Failed to create scoring" });

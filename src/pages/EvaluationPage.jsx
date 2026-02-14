@@ -32,6 +32,9 @@ export default function EvaluationPage() {
   const { evaluation, evaluation_scorings } = assignment;
   const currentScoring = evaluation_scorings[dimensionIndex];
   const isFinal = dimensionIndex === evaluation_scorings.length - 1;
+  const isBooleanScoring =
+    String(currentScoring?.type || "").toLowerCase() === "boolean" ||
+    (Number(currentScoring?.min_range) === 0 && Number(currentScoring?.max_range) === 1);
 
   const handleScore = (value) => {
     setScores((prev) => ({
@@ -52,14 +55,23 @@ export default function EvaluationPage() {
   };
 
   const range = [];
-  for (let i = currentScoring.min_range; i <= currentScoring.max_range; i++) {
-    range.push(i);
+  if (isBooleanScoring) {
+    range.push(0, 1);
+  } else {
+    for (let i = currentScoring.min_range; i <= currentScoring.max_range; i++) {
+      range.push(i);
+    }
   }
 
   const getCriteriaName = (val) => {
-    const crit = currentScoring.criteria.find((c) => c.value === val);
-    return crit ? crit.name : "";
+    const crit = currentScoring.criteria.find((c) => Number(c.value) === Number(val));
+    const name = crit?.criteria_name || crit?.name || "";
+    if (name) return name;
+    if (isBooleanScoring) return Number(val) === 1 ? "Yes" : "No";
+    return "";
   };
+
+  const hasCurrentScore = scores[currentScoring._id] !== undefined && scores[currentScoring._id] !== null;
 
   return (
     <div className="flex h-screen bg-base-100 font-sans">
@@ -117,7 +129,7 @@ export default function EvaluationPage() {
               variant="contained"
               color="success"
               onClick={handleSubmit}
-              disabled={!scores[currentScoring._id]}
+              disabled={!hasCurrentScore}
             >
               Submit Evaluation
             </Button>
@@ -126,7 +138,7 @@ export default function EvaluationPage() {
               size="large"
               variant="contained"
               onClick={() => setDimensionIndex((i) => i + 1)}
-              disabled={!scores[currentScoring._id]}
+              disabled={!hasCurrentScore}
             >
               Next Dimension
             </Button>
@@ -177,7 +189,7 @@ export default function EvaluationPage() {
               onClick={() => handleScore(n)}
               className="mb-1"
             >
-              {n} {getCriteriaName(n) ? `— ${getCriteriaName(n)}` : ""}
+              {isBooleanScoring ? getCriteriaName(n) : `${n}${getCriteriaName(n) ? ` — ${getCriteriaName(n)}` : ""}`}
             </Button>
           ))}
         </ButtonGroup>

@@ -42,7 +42,7 @@ export default function App() {
           role="status"
           aria-label="Signing in"
         >
-          <img src="/images/logo-login.png" alt="Portal logo" className="login-global-splash-logo" />
+          <img src="/images/logo-login.webp" alt="Portal logo" className="login-global-splash-logo" />
         </div>
       ) : null}
       {!isLoginRoute ? <Navbar /> : null}
