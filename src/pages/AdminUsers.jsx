@@ -1,15 +1,68 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api';
+import { useAuth } from '../auth/AuthContext';
+
+const EMPTY_FORM = {
+  username: '',
+  email: '',
+  group: '',
+  role: 'EXPERT',
+  password: ''
+};
+
+const MIN_PASSWORD_LENGTH = 8;
+
+function roleBadgeClass(role) {
+  if (role === 'ADMIN') return 'badge-error';
+  if (role === 'RESEARCHER') return 'badge-warning';
+  return 'badge-info';
+}
 
 export default function AdminUsers() {
+  const { user: currentUser } = useAuth();
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
 
-  const [form, setForm] = useState({ username: '', email: '', group: '', role: 'EXPERT', password: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [busyActionKey, setBusyActionKey] = useState('');
 
-  const experts = useMemo(() => users.filter((u) => u.role === 'EXPERT'), [users]);
+  const [passwordDialog, setPasswordDialog] = useState({
+    open: false,
+    userId: '',
+    username: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const stats = useMemo(() => {
+    const total = users.length;
+    const active = users.filter((u) => u.isActive).length;
+    const admins = users.filter((u) => u.role === 'ADMIN').length;
+    const experts = users.filter((u) => u.role === 'EXPERT').length;
+    const researchers = users.filter((u) => u.role === 'RESEARCHER').length;
+    return { total, active, admins, experts, researchers };
+  }, [users]);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return users
+      .filter((u) => {
+        if (roleFilter !== 'ALL' && u.role !== roleFilter) return false;
+        if (statusFilter === 'ACTIVE' && !u.isActive) return false;
+        if (statusFilter === 'DISABLED' && u.isActive) return false;
+
+        if (!q) return true;
+        const haystack = `${u.username || ''} ${u.email || ''} ${u.group || ''}`.toLowerCase();
+        return haystack.includes(q);
+      })
+      .sort((a, b) => String(a.username || '').localeCompare(String(b.username || '')));
+  }, [users, search, roleFilter, statusFilter]);
 
   async function load() {
     setLoading(true);
@@ -26,7 +79,7 @@ export default function AdminUsers() {
   }
 
   useEffect(() => {
-    load();
+    void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -44,7 +97,7 @@ export default function AdminUsers() {
       };
       const res = await apiFetch('/admin/users', { method: 'POST', body: JSON.stringify(payload) });
       setMsg(`User created. Temporary password: ${res.temporaryPassword}`);
-      setForm({ username: '', email: '', group: form.group, role: 'EXPERT', password: '' });
+      setForm((prev) => ({ ...EMPTY_FORM, group: prev.group }));
       await load();
     } catch (e2) {
       setError(e2.message);
@@ -54,78 +107,165 @@ export default function AdminUsers() {
   async function resetPassword(userId) {
     setMsg('');
     setError('');
+    setBusyActionKey(`${userId}:reset`);
     try {
       const res = await apiFetch(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify({ resetPassword: true }) });
       setMsg(`Password reset. Temporary password: ${res.temporaryPassword}`);
       await load();
     } catch (e) {
       setError(e.message);
+    } finally {
+      setBusyActionKey('');
     }
   }
 
   async function toggleActive(userId, nextActive) {
     setMsg('');
     setError('');
+    setBusyActionKey(`${userId}:active`);
     try {
       await apiFetch(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify({ isActive: nextActive }) });
       await load();
     } catch (e) {
       setError(e.message);
+    } finally {
+      setBusyActionKey('');
+    }
+  }
+
+  function openPasswordDialog(targetUser) {
+    setPasswordDialog({
+      open: true,
+      userId: String(targetUser.id),
+      username: targetUser.username,
+      password: '',
+      confirmPassword: ''
+    });
+  }
+
+  function closePasswordDialog() {
+    setPasswordDialog((prev) => ({
+      ...prev,
+      open: false,
+      password: '',
+      confirmPassword: ''
+    }));
+  }
+
+  async function submitManualPassword(e) {
+    e.preventDefault();
+    setMsg('');
+    setError('');
+
+    const nextPassword = passwordDialog.password.trim();
+    const confirm = passwordDialog.confirmPassword.trim();
+
+    if (nextPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (nextPassword !== confirm) {
+      setError('Password confirmation does not match.');
+      return;
+    }
+
+    setBusyActionKey(`${passwordDialog.userId}:setpw`);
+    try {
+      await apiFetch(`/admin/users/${passwordDialog.userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password: nextPassword })
+      });
+      setMsg(`Password updated for ${passwordDialog.username}.`);
+      closePasswordDialog();
+      await load();
+    } catch (e2) {
+      setError(e2.message);
+    } finally {
+      setBusyActionKey('');
+    }
+  }
+
+  async function deleteUser(userToDelete) {
+    setMsg('');
+    setError('');
+
+    const confirmed = window.confirm(
+      `Delete "${userToDelete.username}" permanently?\n\nThis cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setBusyActionKey(`${userToDelete.id}:delete`);
+    try {
+      await apiFetch(`/admin/users/${userToDelete.id}`, { method: 'DELETE' });
+      setMsg(`User "${userToDelete.username}" deleted.`);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusyActionKey('');
     }
   }
 
   return (
-    <div className="min-h-screen bg-base-200 text-base-content font-sans">
-      <div className="container mx-auto p-6 max-w-7xl animate-fade-in">
-        {/* Header */}
-        <div className="flex justify-between items-end mb-8 border-b border-base-200 pb-4">
+    <div className="min-h-screen bg-base-200 text-base-content font-sans admin-users-shell">
+      <div className="container mx-auto p-6 max-w-7xl animate-fade-in space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-base-300 pb-4">
           <div>
-            <h1 className="text-3xl font-bold text-base-content">
-              User Management
-            </h1>
+            <h1 className="text-3xl font-bold">User Management</h1>
             <p className="text-base-content/70 mt-2 text-lg">
-              Create accounts and manage user access. No public registration allowed.
+              Create accounts, set passwords, and manage access in one place.
             </p>
           </div>
-          <button
-            className={`btn btn-ghost btn-sm gap-2 ${loading ? 'loading' : ''}`}
-            onClick={load}
-            disabled={loading}
-          >
+          <button className={`btn btn-ghost btn-sm ${loading ? 'loading' : ''}`} onClick={load} disabled={loading}>
             {loading ? 'Refreshing...' : 'Refresh Data'}
           </button>
         </div>
 
-        {msg && (
-          <div className="alert alert-success shadow-lg mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        {msg ? (
+          <div className="alert alert-success shadow-lg">
             <span>{msg}</span>
           </div>
-        )}
+        ) : null}
 
-        {error && (
-          <div className="alert alert-error shadow-lg mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        {error ? (
+          <div className="alert alert-error shadow-lg">
             <span>{error}</span>
           </div>
-        )}
+        ) : null}
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+            <p className="text-xs uppercase opacity-60">Total</p>
+            <p className="text-2xl font-bold">{stats.total}</p>
+          </div>
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+            <p className="text-xs uppercase opacity-60">Active</p>
+            <p className="text-2xl font-bold text-success">{stats.active}</p>
+          </div>
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+            <p className="text-xs uppercase opacity-60">Admins</p>
+            <p className="text-2xl font-bold">{stats.admins}</p>
+          </div>
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+            <p className="text-xs uppercase opacity-60">Experts</p>
+            <p className="text-2xl font-bold">{stats.experts}</p>
+          </div>
+          <div className="rounded-xl border border-base-300 bg-base-100 p-3">
+            <p className="text-xs uppercase opacity-60">Researchers</p>
+            <p className="text-2xl font-bold">{stats.researchers}</p>
+          </div>
+        </div>
 
         {loading && !users.length ? (
           <div className="flex justify-center py-20">
-            <button className="btn btn-ghost loading btn-lg">Loading Users...</button>
+            <button className="btn btn-ghost loading btn-lg">Loading users...</button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Create User Card */}
-            <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div className="xl:col-span-4 card bg-base-100 shadow-xl border border-base-300">
               <div className="card-body">
-                <h2 className="card-title text-primary">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                  Create User
-                </h2>
-                <div className="divider h-px bg-base-200 my-2"></div>
-
-                <form onSubmit={createUser} className="space-y-4">
+                <h2 className="card-title text-primary">Create User</h2>
+                <form onSubmit={createUser} className="space-y-4 admin-users-form">
                   <div className="form-control">
                     <label className="label"><span className="label-text font-medium">Username</span></label>
                     <input
@@ -184,31 +324,41 @@ export default function AdminUsers() {
                     />
                   </div>
 
-                  <div className="card-actions justify-end mt-4">
-                    <button className="btn btn-primary w-full" type="submit">Create User</button>
-                  </div>
+                  <button className="btn btn-primary w-full mt-2" type="submit">Create User</button>
                 </form>
               </div>
             </div>
 
-            {/* Users List Card - Spans 2 columns */}
-            <div className="card bg-base-100 shadow-xl border border-base-200 lg:col-span-2">
-              <div className="card-body">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="card-title text-secondary">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    All Users
-                  </h2>
-                  <div className="flex gap-3 items-center">
-                    <div className="badge badge-outline">Total: {users.length}</div>
-                    <div className="badge badge-primary">Experts: {experts.length}</div>
-                  </div>
+            <div className="xl:col-span-8 card bg-base-100 shadow-xl border border-base-300">
+              <div className="card-body gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="card-title text-secondary">All Users</h2>
+                  <div className="badge badge-outline">{filteredUsers.length} shown</div>
                 </div>
 
-                <div className="divider h-px bg-base-200 my-2"></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 admin-users-toolbar">
+                  <input
+                    type="text"
+                    className="input input-bordered md:col-span-1"
+                    placeholder="Search username, email, group..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  <select className="select select-bordered" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                    <option value="ALL">All Roles</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="EXPERT">EXPERT</option>
+                    <option value="RESEARCHER">RESEARCHER</option>
+                  </select>
+                  <select className="select select-bordered" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="ALL">All Status</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="DISABLED">Disabled</option>
+                  </select>
+                </div>
 
-                <div className="overflow-x-auto">
-                  <table className="table table-compact w-full">
+                <div className="overflow-x-auto rounded-xl border border-base-300">
+                  <table className="table table-pin-rows w-full">
                     <thead>
                       <tr>
                         <th>User</th>
@@ -219,66 +369,81 @@ export default function AdminUsers() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map((u) => (
-                        <tr key={u.id} className="hover">
-                          <td>
-                            <div className="flex flex-col">
-                              <div className="font-semibold">{u.username}</div>
-                              <div className="text-xs opacity-60">{u.email}</div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`badge badge-sm ${u.role === 'ADMIN' ? 'badge-error' :
-                              u.role === 'RESEARCHER' ? 'badge-warning' :
-                                'badge-info'
-                              }`}>
-                              {u.role}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="badge badge-ghost badge-sm">{u.group}</span>
-                          </td>
-                          <td>
-                            {u.isActive ? (
-                              <span className="badge badge-success badge-sm">Active</span>
-                            ) : (
-                              <span className="badge badge-warning badge-sm">Disabled</span>
-                            )}
-                          </td>
-                          <td>
-                            <div className="flex gap-2 justify-center flex-wrap">
-                              <button
-                                className="btn btn-ghost btn-xs border border-base-300"
-                                onClick={() => resetPassword(u.id)}
-                              >
-                                Reset PW
-                              </button>
+                      {filteredUsers.map((u) => {
+                        const isSelf = String(u.id) === String(currentUser?.id || '');
+                        const actionBusy = busyActionKey.startsWith(`${u.id}:`);
+                        return (
+                          <tr key={u.id} className="hover">
+                            <td>
+                              <div className="flex flex-col">
+                                <div className="font-semibold">{u.username}</div>
+                                <div className="text-xs opacity-60">{u.email || 'No email'}</div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`badge badge-sm ${roleBadgeClass(u.role)}`}>{u.role}</span>
+                            </td>
+                            <td>
+                              <span className="badge badge-ghost badge-sm">{u.group}</span>
+                            </td>
+                            <td>
                               {u.isActive ? (
-                                <button
-                                  className="btn btn-ghost btn-xs border border-base-300 text-warning"
-                                  onClick={() => toggleActive(u.id, false)}
-                                >
-                                  Disable
-                                </button>
+                                <span className="badge badge-success badge-sm">Active</span>
                               ) : (
-                                <button
-                                  className="btn btn-ghost btn-xs border border-base-300 text-success"
-                                  onClick={() => toggleActive(u.id, true)}
-                                >
-                                  Enable
-                                </button>
+                                <span className="badge badge-warning badge-sm">Disabled</span>
                               )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {!users.length && (
+                            </td>
+                            <td>
+                              <div className="flex gap-2 justify-center flex-wrap">
+                                <button
+                                  className="btn btn-ghost btn-xs border border-base-300"
+                                  onClick={() => openPasswordDialog(u)}
+                                  disabled={actionBusy}
+                                >
+                                  Set PW
+                                </button>
+                                <button
+                                  className="btn btn-ghost btn-xs border border-base-300"
+                                  onClick={() => resetPassword(u.id)}
+                                  disabled={actionBusy}
+                                >
+                                  Reset PW
+                                </button>
+                                {u.isActive ? (
+                                  <button
+                                    className="btn btn-ghost btn-xs border border-base-300 text-warning"
+                                    onClick={() => toggleActive(u.id, false)}
+                                    disabled={actionBusy}
+                                  >
+                                    Disable
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="btn btn-ghost btn-xs border border-base-300 text-success"
+                                    onClick={() => toggleActive(u.id, true)}
+                                    disabled={actionBusy}
+                                  >
+                                    Enable
+                                  </button>
+                                )}
+                                <button
+                                  className="btn btn-ghost btn-xs border border-error/40 text-error"
+                                  onClick={() => deleteUser(u)}
+                                  disabled={actionBusy || isSelf}
+                                  title={isSelf ? 'You cannot delete your own account' : 'Delete user'}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {!filteredUsers.length ? (
                         <tr>
-                          <td colSpan="5" className="text-center opacity-50 py-8">
-                            No users found
-                          </td>
+                          <td colSpan="5" className="text-center opacity-50 py-8">No users found</td>
                         </tr>
-                      )}
+                      ) : null}
                     </tbody>
                   </table>
                 </div>
@@ -287,6 +452,53 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
+
+      {passwordDialog.open ? (
+        <dialog className="modal modal-open">
+          <div className="modal-box admin-password-modal">
+            <h3 className="font-bold text-lg">Set Password</h3>
+            <p className="text-sm opacity-70 mt-1">Update password for <span className="font-semibold">{passwordDialog.username}</span>.</p>
+
+            <form className="mt-4 space-y-3 admin-users-form" onSubmit={submitManualPassword}>
+              <div className="form-control">
+                <label className="label"><span className="label-text">New Password</span></label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+                  value={passwordDialog.password}
+                  onChange={(e) => setPasswordDialog((prev) => ({ ...prev, password: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label"><span className="label-text">Confirm Password</span></label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  placeholder="Re-enter password"
+                  value={passwordDialog.confirmPassword}
+                  onChange={(e) => setPasswordDialog((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="modal-action mt-5">
+                <button type="button" className="btn btn-ghost" onClick={closePasswordDialog}>Cancel</button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={busyActionKey === `${passwordDialog.userId}:setpw`}
+                >
+                  {busyActionKey === `${passwordDialog.userId}:setpw` ? 'Saving...' : 'Save Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+          <div className="modal-backdrop" onClick={closePasswordDialog}></div>
+        </dialog>
+      ) : null}
     </div>
   );
 }

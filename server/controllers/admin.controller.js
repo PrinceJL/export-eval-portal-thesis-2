@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 
-const { sql } = require("../models");
+const { sql, mongo } = require("../models");
 const { Op } = require("sequelize");
 const notificationService = require("../services/notification.service");
 
@@ -111,20 +111,38 @@ async function createUser(req, res) {
 async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { email, group, role, isActive, resetPassword } = req.body;
+    const { email, group, role, isActive, resetPassword, password } = req.body;
 
     const user = await sql.User.findByPk(id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     if (email !== undefined) user.email = email;
     if (group !== undefined) user.group = group;
-    if (role !== undefined) user.role = role;
+    if (role !== undefined) {
+      if (!["ADMIN", "EXPERT", "RESEARCHER"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      user.role = role;
+    }
     if (isActive !== undefined) user.isActive = !!isActive;
 
+    if (resetPassword && password !== undefined) {
+      return res.status(400).json({ error: "Use either resetPassword or password, not both" });
+    }
+
+    let passwordUpdated = false;
     let newTempPassword = null;
-    if (resetPassword) {
+    if (password !== undefined) {
+      const nextPassword = String(password || "").trim();
+      if (nextPassword.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+      user.passwordHash = await bcrypt.hash(nextPassword, 10);
+      passwordUpdated = true;
+    } else if (resetPassword) {
       newTempPassword = genTempPassword();
       user.passwordHash = await bcrypt.hash(newTempPassword, 10);
+      passwordUpdated = true;
     }
 
     await user.save();
@@ -139,10 +157,44 @@ async function updateUser(req, res) {
         isActive: user.isActive,
         updatedAt: user.updatedAt
       },
+      ...(passwordUpdated ? { passwordUpdated: true } : {}),
       ...(newTempPassword ? { temporaryPassword: newTempPassword } : {})
     });
   } catch (e) {
     res.status(500).json({ error: "Failed to update user" });
+  }
+}
+
+async function deleteUser(req, res) {
+  try {
+    const { id } = req.params;
+    const actorId = String(req?.user?.id || "");
+
+    if (actorId && String(id) === actorId) {
+      return res.status(400).json({ error: "You cannot delete your own account" });
+    }
+
+    const user = await sql.User.findByPk(id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (user.role === "ADMIN" && user.isActive) {
+      const activeAdminCount = await sql.User.count({
+        where: { role: "ADMIN", isActive: true }
+      });
+      if (activeAdminCount <= 1) {
+        return res.status(400).json({ error: "Cannot delete the last active admin account" });
+      }
+    }
+
+    await user.destroy();
+    await mongo.SessionCache.deleteMany({ userId: String(id) });
+
+    return res.json({ message: "User deleted" });
+  } catch (e) {
+    if (e?.name === "SequelizeForeignKeyConstraintError") {
+      return res.status(409).json({ error: "Cannot delete this user because related records exist. Disable the account instead." });
+    }
+    return res.status(500).json({ error: "Failed to delete user" });
   }
 }
 
@@ -510,6 +562,7 @@ module.exports = {
   listUsers,
   createUser,
   updateUser,
+  deleteUser,
   // scorings
   listScorings,
   createScoring,

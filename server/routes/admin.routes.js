@@ -16,6 +16,7 @@ router.use(requireRole(["ADMIN", "RESEARCHER"]));
 router.get("/users", adminController.listUsers);
 router.post("/users", adminController.createUser);
 router.patch("/users/:id", adminController.updateUser);
+router.delete("/users/:id", adminController.deleteUser);
 
 // Scorings
 router.get("/scorings", adminController.listScorings);
