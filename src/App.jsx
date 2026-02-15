@@ -13,6 +13,7 @@ import Messaging from './pages/Messaging';
 import Contact from './pages/Contact';
 
 import AdminUsers from './pages/AdminUsers';
+import AdminEvaluations from './pages/AdminEvaluations';
 import AdminContact from './pages/AdminContact';
 import Maintenance from './pages/Maintenance';
 import NotFound from './pages/NotFound';
@@ -40,6 +41,7 @@ function getPageLabel(pathname) {
   if (pathname === '/messaging') return 'Messaging';
   if (pathname === '/contact') return 'Contact Us';
   if (pathname === '/admin/users') return 'User Management';
+  if (pathname === '/admin/evaluations') return 'Evaluation Management';
   if (pathname === '/admin/contact') return 'Contact Info';
   if (pathname === '/maintenance') return 'Maintenance';
   return 'Portal';
@@ -233,6 +235,15 @@ export default function App() {
         element={
           <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
             <AdminUsers />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/evaluations"
+        element={
+          <ProtectedRoute allowRoles={['ADMIN']}>
+            <AdminEvaluations />
           </ProtectedRoute>
         }
       />

@@ -9,7 +9,6 @@ function daysUntil(date) {
 }
 
 export default function EvaluationList() {
-  console.log("Evaluations List mounted");
   const [evaluations, setEvaluations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

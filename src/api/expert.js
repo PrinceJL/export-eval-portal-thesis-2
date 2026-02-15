@@ -18,7 +18,5 @@ export const submitEvaluation = async (id, payload) => {
         assignmentId: id,
         user_evaluation_output: payload.scores // flatten to match schema
     });
-    console.log("Submission response:", id);
-    console.log(payload);
     return res.data;
 };

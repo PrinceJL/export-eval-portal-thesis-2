@@ -106,7 +106,8 @@ export default function Navbar() {
   const presenceTriggerRef = useRef(null);
   const presenceMenuRef = useRef(null);
 
-  const isAdmin = user?.role === "ADMIN" || user?.role === "RESEARCHER";
+  const isAdmin = user?.role === "ADMIN";
+  const isManagementUser = user?.role === "ADMIN" || user?.role === "RESEARCHER";
   const displayName = user?.username || "User";
   const displayEmail = user?.email || "No email on account";
   const avatarLetter = String(displayName).charAt(0).toUpperCase() || "U";
@@ -131,11 +132,11 @@ export default function Navbar() {
 
   const mainLinks = [
     { to: "/dashboard", label: "Dashboard" },
-    { to: "/evaluation", label: "Evaluation" },
     { to: "/messaging", label: "Messaging" },
-    { to: "/contact", label: "Contact Us" }
+    { to: "/evaluation", label: "Evaluation" },
+    ...(isAdmin ? [{ to: "/admin/evaluations", label: "Evaluation Management" }] : []),
   ];
-  const managementLinks = isAdmin
+  const managementLinks = isManagementUser
     ? [
       { to: "/admin/users", label: "User Management" },
       { to: "/admin/contact", label: "Contact Info" }
@@ -157,24 +158,24 @@ export default function Navbar() {
   const isDark = resolvedTheme === "dark";
   const palette = isDark
     ? {
-      sidebarBg: "#0c131f",
-      sidebarBorder: "#1e2b3e",
-      text: "#e5edf8",
-      brand: "#f8fbff",
-      muted: "#8ea2bf",
-      searchBg: "#101c2d",
-      searchBorder: "#273a56",
-      searchText: "#dce6f7",
-      link: "#afc1da",
-      linkActiveText: "#f6f9ff",
-      linkActiveBg: "#1a2a42",
-      linkActiveBorder: "#36527a",
-      menuBg: "#111b2c",
-      menuBorder: "#2a405e",
-      menuHover: "#1b2d46",
-      chipBg: "#15243a",
-      chipBorder: "#324d73",
-      shadow: "0 16px 34px rgba(0,0,0,0.34)"
+      sidebarBg: "#07090d",
+      sidebarBorder: "#1f232b",
+      text: "#e8edf4",
+      brand: "#f4f7fb",
+      muted: "#8d95a3",
+      searchBg: "#0d1117",
+      searchBorder: "#252b34",
+      searchText: "#e8edf4",
+      link: "#b2bac8",
+      linkActiveText: "#f8fbff",
+      linkActiveBg: "#131820",
+      linkActiveBorder: "#323a46",
+      menuBg: "#0d1117",
+      menuBorder: "#252b34",
+      menuHover: "#171d25",
+      chipBg: "#10151c",
+      chipBorder: "#2b323d",
+      shadow: "0 18px 36px rgba(0,0,0,0.56)"
     }
     : {
       sidebarBg:
@@ -201,6 +202,7 @@ export default function Navbar() {
   const isLightActive = themeMode === "light" || (themeMode === "auto" && resolvedTheme === "light");
   const isDarkActive = themeMode === "dark" || (themeMode === "auto" && resolvedTheme === "dark");
   const showFloatingToggle = isDesktopViewport ? isDesktopSidebarHidden : !isMobileOpen;
+  const showTopbarThemeButtons = isDesktopViewport;
   const brandLogoSrc = isDark ? "/images/logo-main-white.webp" : "/images/logo-main-black.webp";
 
   async function handlePresenceChange(nextStatus) {
@@ -456,36 +458,55 @@ export default function Navbar() {
             </>
           ) : null}
           <div className="app-sidebar-spacer" />
+
+          <nav className="app-sidebar-nav">
+            <NavLink
+              to="/contact"
+              className={({ isActive }) => `app-sidebar-link ${isActive ? "active" : ""}`}
+              onClick={() => setIsMobileOpen(false)}
+              style={({ isActive }) => ({
+                color: isActive ? palette.linkActiveText : palette.link,
+                background: isActive ? palette.linkActiveBg : "transparent",
+                borderColor: isActive ? palette.linkActiveBorder : "transparent"
+              })}
+            >
+              Contact Us
+            </NavLink>
+          </nav>
         </div>
       </aside>
 
       <div className="app-topbar-tools">
-        <button
-          type="button"
-          aria-label="Light mode"
-          title="Light mode"
-          className="app-topbar-icon-btn"
-          onClick={() => setThemeMode("light")}
-          style={{
-            color: palette.text,
-            background: isLightActive ? palette.menuHover : "transparent"
-          }}
-        >
-          <SunIcon />
-        </button>
-        <button
-          type="button"
-          aria-label="Dark mode"
-          title="Dark mode"
-          className="app-topbar-icon-btn"
-          onClick={() => setThemeMode("dark")}
-          style={{
-            color: palette.text,
-            background: isDarkActive ? palette.menuHover : "transparent"
-          }}
-        >
-          <MoonIcon />
-        </button>
+        {showTopbarThemeButtons ? (
+          <>
+            <button
+              type="button"
+              aria-label="Light mode"
+              title="Light mode"
+              className="app-topbar-icon-btn"
+              onClick={() => setThemeMode("light")}
+              style={{
+                color: palette.text,
+                background: isLightActive ? palette.menuHover : "transparent"
+              }}
+            >
+              <SunIcon />
+            </button>
+            <button
+              type="button"
+              aria-label="Dark mode"
+              title="Dark mode"
+              className="app-topbar-icon-btn"
+              onClick={() => setThemeMode("dark")}
+              style={{
+                color: palette.text,
+                background: isDarkActive ? palette.menuHover : "transparent"
+              }}
+            >
+              <MoonIcon />
+            </button>
+          </>
+        ) : null}
 
         <div ref={notificationWrapRef} className="app-topbar-notification-wrap">
           <button

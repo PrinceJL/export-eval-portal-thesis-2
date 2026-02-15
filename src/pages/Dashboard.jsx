@@ -76,7 +76,7 @@ export default function Dashboard() {
 
     if (isAdmin) {
         return (
-            <div className="min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
+            <div className="admin-dashboard-shell min-h-screen w-full bg-base-100 px-4 py-6 sm:px-6 sm:py-8">
                 <div className="mx-auto w-full max-w-[1240px] space-y-6">
                     <div>
                         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
@@ -84,7 +84,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
+                        <div className="admin-dashboard-card rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
                             <h2 className="mb-4 flex items-center gap-3 text-xl font-bold">
                                 <span>System Health</span>
                                 <span className={`badge ${systemHealth?.status === 'OK' ? 'badge-success' : 'badge-error'} badge-sm`}>
@@ -92,13 +92,13 @@ export default function Dashboard() {
                                 </span>
                             </h2>
                             <div className="space-y-3">
-                                <div className="flex items-center justify-between rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                <div className="admin-dashboard-row flex items-center justify-between rounded-xl border border-base-300/70 bg-base-200/40 p-3">
                                     <span className="font-semibold">PostgreSQL Database</span>
                                     <span className={`badge ${systemHealth?.databases?.postgres === 'CONNECTED' ? 'badge-success' : 'badge-error'}`}>
                                         {systemHealth?.databases?.postgres || '...'}
                                     </span>
                                 </div>
-                                <div className="flex items-center justify-between rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                <div className="admin-dashboard-row flex items-center justify-between rounded-xl border border-base-300/70 bg-base-200/40 p-3">
                                     <span className="font-semibold">MongoDB Database</span>
                                     <span className={`badge ${systemHealth?.databases?.mongodb === 'CONNECTED' ? 'badge-success' : 'badge-error'}`}>
                                         {systemHealth?.databases?.mongodb || '...'}
@@ -107,33 +107,33 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
+                        <div className="admin-dashboard-card rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
                             <h2 className="mb-4 text-xl font-bold">Evaluation Summary</h2>
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                <div className="rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                <div className="admin-dashboard-mini-card rounded-xl border border-base-300/70 bg-base-200/40 p-3">
                                     <p className="text-xs uppercase tracking-wide opacity-70">Total</p>
-                                    <p className="mt-1 text-3xl font-bold text-primary">{adminStats?.evaluations?.total || 0}</p>
+                                    <p className="mt-1 text-3xl font-bold text-primary admin-summary-total">{adminStats?.evaluations?.total || 0}</p>
                                     <p className="mt-1 text-xs opacity-60">All assignments</p>
                                 </div>
-                                <div className="rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                <div className="admin-dashboard-mini-card rounded-xl border border-base-300/70 bg-base-200/40 p-3">
                                     <p className="text-xs uppercase tracking-wide opacity-70">Completed</p>
-                                    <p className="mt-1 text-3xl font-bold text-success">{adminStats?.evaluations?.completed || 0}</p>
+                                    <p className="mt-1 text-3xl font-bold text-success admin-summary-completed">{adminStats?.evaluations?.completed || 0}</p>
                                     <p className="mt-1 text-xs opacity-60">Successfully finished</p>
                                 </div>
-                                <div className="rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+                                <div className="admin-dashboard-mini-card rounded-xl border border-base-300/70 bg-base-200/40 p-3">
                                     <p className="text-xs uppercase tracking-wide opacity-70">Pending</p>
-                                    <p className="mt-1 text-3xl font-bold text-warning">{adminStats?.evaluations?.pending || 0}</p>
+                                    <p className="mt-1 text-3xl font-bold text-warning admin-summary-pending">{adminStats?.evaluations?.pending || 0}</p>
                                     <p className="mt-1 text-xs opacity-60">Awaiting completion</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
+                    <div className="admin-dashboard-card rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
                         <h2 className="text-xl font-bold">User Statistics</h2>
                         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
                             <div className="avatar placeholder shrink-0">
-                                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-sky-300/35 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-900/20">
+                                <div className="admin-dashboard-count-badge flex h-20 w-20 items-center justify-center rounded-full border border-sky-300/35 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-900/20">
                                     <span className="text-3xl font-extrabold leading-none">{adminStats?.users?.total || 0}</span>
                                 </div>
                             </div>
@@ -146,7 +146,7 @@ export default function Dashboard() {
                                 <p className="text-xs opacity-60">Experts, Admins, and Researchers</p>
                             </div>
                             <div className="sm:ml-auto">
-                                <Link to="/admin/users" className="btn btn-primary btn-sm">Manage Users</Link>
+                                <Link to="/admin/users" className="btn btn-primary btn-sm admin-dashboard-manage-btn">Manage Users</Link>
                             </div>
                         </div>
                     </div>

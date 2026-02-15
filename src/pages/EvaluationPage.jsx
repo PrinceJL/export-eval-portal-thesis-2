@@ -6,7 +6,6 @@ import { getAssignmentById, submitEvaluation } from "../api/expert";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 
 export default function EvaluationPage() {
-  console.log("EvaluationPage mounted");
   const { id } = useParams();
   const navigate = useNavigate();
 
