@@ -273,8 +273,13 @@ export default function AdminUsers() {
               Create accounts, set passwords, and manage access in one place.
             </p>
           </div>
-          <button className={`btn btn-ghost btn-sm ${loading ? 'loading' : ''}`} onClick={load} disabled={loading}>
-            {loading ? 'Refreshing...' : 'Refresh Data'}
+          <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+            {loading ? (
+              <>
+                <span className="modern-loader modern-loader-xs modern-loader-inline" aria-hidden="true"></span>
+                Refreshing...
+              </>
+            ) : 'Refresh Data'}
           </button>
         </div>
 
@@ -315,7 +320,10 @@ export default function AdminUsers() {
 
         {loading && !users.length ? (
           <div className="flex justify-center py-20">
-            <button className="btn btn-ghost loading btn-lg">Loading users...</button>
+            <div className="modern-loader-wrap">
+              <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading users"></span>
+              <span className="text-sm font-medium">Loading users...</span>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">

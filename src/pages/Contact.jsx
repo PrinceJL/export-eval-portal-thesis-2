@@ -20,7 +20,13 @@ export default function Contact() {
     load();
   }, []);
 
-  if (loading) return <div className="p-8 text-center"><span className="loading loading-spinner loading-lg"></span></div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading contacts"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-8">

@@ -21,8 +21,9 @@ export default function EvaluationPage() {
   if (!assignment) {
     return (
       <div className="flex items-center justify-center h-screen bg-base-200">
-        <div className="text-lg font-semibold animate-pulse">
-          Loading evaluation…
+        <div className="modern-loader-wrap">
+          <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading evaluation"></span>
+          <span className="text-lg font-semibold">Loading evaluation...</span>
         </div>
       </div>
     );

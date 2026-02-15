@@ -130,7 +130,9 @@ export default function AdminContact() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold">Current Contacts</h2>
                     {loading ? (
-                        <div className="loading loading-spinner loading-lg"></div>
+                        <div className="modern-loader-wrap py-4">
+                            <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading contacts"></span>
+                        </div>
                     ) : (
                         <div className="grid gap-4">
                             {contacts.map(c => (
@@ -222,7 +224,7 @@ export default function AdminContact() {
                             <div className="flex justify-end gap-2 mt-4">
                                 {isEditing && <button type="button" className="btn btn-ghost" onClick={resetForm}>Cancel</button>}
                                 <button type="submit" className="btn btn-primary" disabled={submissionLoading}>
-                                    {submissionLoading && <span className="loading loading-spinner"></span>}
+                                    {submissionLoading && <span className="modern-loader modern-loader-xs modern-loader-on-solid modern-loader-inline" aria-hidden="true"></span>}
                                     {isEditing ? 'Update' : 'Add'}
                                 </button>
                             </div>

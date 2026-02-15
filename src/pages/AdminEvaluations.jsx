@@ -340,11 +340,16 @@ export default function AdminEvaluations() {
             </p>
           </div>
           <button
-            className={`btn btn-ghost btn-sm gap-2 ${loading ? 'loading' : ''}`}
+            className="btn btn-ghost btn-sm gap-2"
             onClick={loadAll}
             disabled={loading}
           >
-            {loading ? 'Refreshing...' : 'Refresh Data'}
+            {loading ? (
+              <>
+                <span className="modern-loader modern-loader-xs modern-loader-inline" aria-hidden="true"></span>
+                Refreshing...
+              </>
+            ) : 'Refresh Data'}
           </button>
         </div>
 
@@ -364,7 +369,10 @@ export default function AdminEvaluations() {
 
         {loading && !evaluations.length ? (
           <div className="flex justify-center py-20">
-            <button className="btn btn-ghost loading btn-lg">Loading Dashboard...</button>
+            <div className="modern-loader-wrap">
+              <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading evaluation dashboard"></span>
+              <span className="text-sm font-medium">Loading dashboard...</span>
+            </div>
           </div>
         ) : (
           <div className="space-y-8">

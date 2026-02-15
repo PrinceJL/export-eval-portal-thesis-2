@@ -188,7 +188,12 @@ export default function Login() {
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Get Started'}
+              {loading ? (
+                <>
+                  <span className="modern-loader modern-loader-xs modern-loader-on-solid modern-loader-inline" aria-hidden="true"></span>
+                  Signing in...
+                </>
+              ) : 'Get Started'}
             </button>
           </form>
 

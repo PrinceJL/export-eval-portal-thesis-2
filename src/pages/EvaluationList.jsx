@@ -30,7 +30,14 @@ export default function EvaluationList() {
   }, []);
 
   if (loading) {
-    return <div className="p-8">Loading evaluations…</div>;
+    return (
+      <div className="p-8">
+        <div className="modern-loader-wrap">
+          <span className="modern-loader modern-loader-lg" role="status" aria-label="Loading evaluations"></span>
+          <span className="text-sm font-medium">Loading evaluations...</span>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
