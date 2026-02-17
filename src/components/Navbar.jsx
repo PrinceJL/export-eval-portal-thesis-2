@@ -142,6 +142,10 @@ export default function Navbar() {
       { to: "/admin/contact", label: "Contact Info" }
     ]
     : [];
+  const settingsLinks = [
+    ...managementLinks,
+    { to: "/contact", label: "Contact Us" }
+  ];
 
   const startThemeSwitchAnimation = () => {
     const root = document.documentElement;
@@ -435,44 +439,25 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {managementLinks.length ? (
-            <>
-              <div className="app-sidebar-section-title" style={{ color: palette.muted }}>Settings</div>
-              <nav className="app-sidebar-nav">
-                {managementLinks.map((link) => (
-                  <NavLink
-                    key={link.to}
-                    to={link.to}
-                    className={({ isActive }) => `app-sidebar-link ${isActive ? "active" : ""}`}
-                    onClick={() => setIsMobileOpen(false)}
-                    style={({ isActive }) => ({
-                      color: isActive ? palette.linkActiveText : palette.link,
-                      background: isActive ? palette.linkActiveBg : "transparent",
-                      borderColor: isActive ? palette.linkActiveBorder : "transparent"
-                    })}
-                  >
-                    {link.label}
-                  </NavLink>
-                ))}
-              </nav>
-            </>
-          ) : null}
-          <div className="app-sidebar-spacer" />
-
+          <div className="app-sidebar-section-title" style={{ color: palette.muted }}>Settings</div>
           <nav className="app-sidebar-nav">
-            <NavLink
-              to="/contact"
-              className={({ isActive }) => `app-sidebar-link ${isActive ? "active" : ""}`}
-              onClick={() => setIsMobileOpen(false)}
-              style={({ isActive }) => ({
-                color: isActive ? palette.linkActiveText : palette.link,
-                background: isActive ? palette.linkActiveBg : "transparent",
-                borderColor: isActive ? palette.linkActiveBorder : "transparent"
-              })}
-            >
-              Contact Us
-            </NavLink>
+            {settingsLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) => `app-sidebar-link ${isActive ? "active" : ""}`}
+                onClick={() => setIsMobileOpen(false)}
+                style={({ isActive }) => ({
+                  color: isActive ? palette.linkActiveText : palette.link,
+                  background: isActive ? palette.linkActiveBg : "transparent",
+                  borderColor: isActive ? palette.linkActiveBorder : "transparent"
+                })}
+              >
+                {link.label}
+              </NavLink>
+            ))}
           </nav>
+          <div className="app-sidebar-spacer" />
         </div>
       </aside>
 

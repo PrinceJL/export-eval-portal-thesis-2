@@ -1,5 +1,5 @@
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -55,8 +55,15 @@ function getPageLabel(pathname) {
   return 'Portal';
 }
 
+function toMenuRoute(pathname) {
+  if (pathname.startsWith('/evaluation/')) return '/evaluation';
+  if (pathname === '/') return '/dashboard';
+  return pathname;
+}
+
 export default function App() {
   const { logoutTransitionPhase, loginTransitionPhase, isAuthed, user } = useAuth();
+  const nav = useNavigate();
   const APP_BRAND_NAME = 'Evaluation Portal';
   const CRUMB_SWIPE_MS = 180;
   const showLogoutTransition = logoutTransitionPhase !== 'idle';
@@ -83,17 +90,47 @@ export default function App() {
     current: pageLabel
   });
 
+  const menuRouteOrder = useMemo(() => {
+    const role = String(user?.role || '').toUpperCase();
+    const isAdmin = role === 'ADMIN';
+    const isManagementUser = role === 'ADMIN' || role === 'RESEARCHER';
+
+    return [
+      '/dashboard',
+      '/messaging',
+      '/evaluation',
+      ...(isAdmin ? ['/admin/evaluations'] : []),
+      ...(isManagementUser ? ['/admin/users', '/admin/contact'] : []),
+      '/contact'
+    ];
+  }, [user?.role]);
+
+  const currentMenuIndex = useMemo(() => {
+    const current = toMenuRoute(location.pathname);
+    return menuRouteOrder.indexOf(current);
+  }, [location.pathname, menuRouteOrder]);
+  const canMenuBack = currentMenuIndex >= 0 && menuRouteOrder.length > 1;
+  const canMenuForward = currentMenuIndex >= 0 && menuRouteOrder.length > 1;
+
   const runHistoryNavigation = (direction) => {
+    if (!isAuthed) return;
+
+    const step = direction === 'back' ? -1 : 1;
+    if (currentMenuIndex < 0) return;
+
+    const nextIndex = (currentMenuIndex + step + menuRouteOrder.length) % menuRouteOrder.length;
+
+    const nextRoute = menuRouteOrder[nextIndex];
+    if (!nextRoute || nextRoute === toMenuRoute(location.pathname)) return;
+
     breadcrumbNavIntentRef.current = direction;
     if (breadcrumbIntentResetTimerRef.current) {
       window.clearTimeout(breadcrumbIntentResetTimerRef.current);
       breadcrumbIntentResetTimerRef.current = null;
     }
-    if (direction === 'back') {
-      window.history.back();
-    } else {
-      window.history.forward();
-    }
+
+    nav(nextRoute);
+
     breadcrumbIntentResetTimerRef.current = window.setTimeout(() => {
       breadcrumbNavIntentRef.current = 'neutral';
       breadcrumbIntentResetTimerRef.current = null;
@@ -307,7 +344,8 @@ export default function App() {
                         type="button"
                         className="app-shell-history-btn"
                         aria-label="Go back"
-                        title="Back"
+                        title="Previous menu page"
+                        disabled={!canMenuBack}
                         onClick={() => runHistoryNavigation('back')}
                       >
                         <BackIcon />
@@ -316,7 +354,8 @@ export default function App() {
                         type="button"
                         className="app-shell-history-btn"
                         aria-label="Go forward"
-                        title="Forward"
+                        title="Next menu page"
+                        disabled={!canMenuForward}
                         onClick={() => runHistoryNavigation('forward')}
                       >
                         <ForwardIcon />
