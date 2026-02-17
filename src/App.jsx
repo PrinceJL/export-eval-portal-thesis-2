@@ -1,22 +1,30 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/AuthContext';
 
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import EvaluationList from './pages/EvaluationList';
-import EvaluationPage from './pages/EvaluationPage';
-import Messaging from './pages/Messaging';
-import Contact from './pages/Contact';
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const EvaluationList = lazy(() => import('./pages/EvaluationList'));
+const EvaluationPage = lazy(() => import('./pages/EvaluationPage'));
+const Messaging = lazy(() => import('./pages/Messaging'));
+const Contact = lazy(() => import('./pages/Contact'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminEvaluations = lazy(() => import('./pages/AdminEvaluations'));
+const AdminContact = lazy(() => import('./pages/AdminContact'));
+const Maintenance = lazy(() => import('./pages/Maintenance'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
-import AdminUsers from './pages/AdminUsers';
-import AdminEvaluations from './pages/AdminEvaluations';
-import AdminContact from './pages/AdminContact';
-import Maintenance from './pages/Maintenance';
-import NotFound from './pages/NotFound';
+function RouteLoadingFallback() {
+  return (
+    <div style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+      <span className="modern-loader modern-loader-sm modern-loader-inline" aria-hidden="true" />
+      Loading...
+    </div>
+  );
+}
 
 function BackIcon() {
   return (
@@ -181,85 +189,87 @@ export default function App() {
   );
 
   const appRoutes = (
-    <Routes location={location}>
-      <Route path="/login" element={<Login />} />
-      <Route path="/maintenance" element={<Maintenance />} />
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <Routes location={location}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/maintenance" element={<Maintenance />} />
 
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/evaluation"
-        element={
-          <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-            <EvaluationList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/evaluation"
+          element={
+            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+              <EvaluationList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/evaluation/:id"
-        element={
-          <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-            <EvaluationPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/evaluation/:id"
+          element={
+            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+              <EvaluationPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/messaging"
-        element={
-          <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-            <Messaging />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/messaging"
+          element={
+            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+              <Messaging />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/contact"
-        element={
-          <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
-            <Contact />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/contact"
+          element={
+            <ProtectedRoute allowRoles={['EXPERT', 'ADMIN', 'RESEARCHER']}>
+              <Contact />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/users"
-        element={
-          <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-            <AdminUsers />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
+              <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/evaluations"
-        element={
-          <ProtectedRoute allowRoles={['ADMIN']}>
-            <AdminEvaluations />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/evaluations"
+          element={
+            <ProtectedRoute allowRoles={['ADMIN']}>
+              <AdminEvaluations />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/contact"
-        element={
-          <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
-            <AdminContact />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/contact"
+          element={
+            <ProtectedRoute allowRoles={['ADMIN', 'RESEARCHER']}>
+              <AdminContact />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 
   return (
