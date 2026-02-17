@@ -4,24 +4,34 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Navbar from './components/Navbar';
 import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/AuthContext';
+import Login from './pages/Login';
 
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const EvaluationList = lazy(() => import('./pages/EvaluationList'));
-const EvaluationPage = lazy(() => import('./pages/EvaluationPage'));
-const Messaging = lazy(() => import('./pages/Messaging'));
-const Contact = lazy(() => import('./pages/Contact'));
-const AdminUsers = lazy(() => import('./pages/AdminUsers'));
-const AdminEvaluations = lazy(() => import('./pages/AdminEvaluations'));
-const AdminContact = lazy(() => import('./pages/AdminContact'));
-const Maintenance = lazy(() => import('./pages/Maintenance'));
-const NotFound = lazy(() => import('./pages/NotFound'));
+const loadDashboard = () => import('./pages/Dashboard');
+const loadEvaluationList = () => import('./pages/EvaluationList');
+const loadEvaluationPage = () => import('./pages/EvaluationPage');
+const loadMessaging = () => import('./pages/Messaging');
+const loadContact = () => import('./pages/Contact');
+const loadAdminUsers = () => import('./pages/AdminUsers');
+const loadAdminEvaluations = () => import('./pages/AdminEvaluations');
+const loadAdminContact = () => import('./pages/AdminContact');
+const loadMaintenance = () => import('./pages/Maintenance');
+const loadNotFound = () => import('./pages/NotFound');
+
+const Dashboard = lazy(loadDashboard);
+const EvaluationList = lazy(loadEvaluationList);
+const EvaluationPage = lazy(loadEvaluationPage);
+const Messaging = lazy(loadMessaging);
+const Contact = lazy(loadContact);
+const AdminUsers = lazy(loadAdminUsers);
+const AdminEvaluations = lazy(loadAdminEvaluations);
+const AdminContact = lazy(loadAdminContact);
+const Maintenance = lazy(loadMaintenance);
+const NotFound = lazy(loadNotFound);
 
 function RouteLoadingFallback() {
   return (
-    <div style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-      <span className="modern-loader modern-loader-sm modern-loader-inline" aria-hidden="true" />
-      Loading...
+    <div style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span className="modern-loader modern-loader-md" aria-label="Loading page" />
     </div>
   );
 }
@@ -85,10 +95,19 @@ export default function App() {
   const breadcrumbTimersRef = useRef([]);
   const breadcrumbNavIntentRef = useRef('neutral');
   const breadcrumbIntentResetTimerRef = useRef(null);
+  const prefetchedModulesRef = useRef(new Set());
   const breadcrumbDisplayRef = useRef({
     previous: APP_BRAND_NAME,
     current: pageLabel
   });
+
+  const prefetchModule = (key, loader) => {
+    if (prefetchedModulesRef.current.has(key)) return;
+    prefetchedModulesRef.current.add(key);
+    loader().catch(() => {
+      prefetchedModulesRef.current.delete(key);
+    });
+  };
 
   const menuRouteOrder = useMemo(() => {
     const role = String(user?.role || '').toUpperCase();
@@ -224,6 +243,37 @@ export default function App() {
     },
     []
   );
+
+  useEffect(() => {
+    if (!isAuthed) return;
+
+    prefetchModule('dashboard', loadDashboard);
+    prefetchModule('evaluation-list', loadEvaluationList);
+
+    const role = String(user?.role || '').toUpperCase();
+    if (role === 'ADMIN' || role === 'RESEARCHER') prefetchModule('admin-users', loadAdminUsers);
+    if (role === 'ADMIN') prefetchModule('admin-evaluations', loadAdminEvaluations);
+    if (role === 'ADMIN' || role === 'RESEARCHER') prefetchModule('admin-contact', loadAdminContact);
+
+    let idleHandle = null;
+    let timeoutHandle = null;
+    const queueMessagingPrefetch = () => prefetchModule('messaging', loadMessaging);
+
+    if (typeof window.requestIdleCallback === 'function') {
+      idleHandle = window.requestIdleCallback(queueMessagingPrefetch, { timeout: 1600 });
+    } else {
+      timeoutHandle = window.setTimeout(queueMessagingPrefetch, 700);
+    }
+
+    return () => {
+      if (idleHandle !== null && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle !== null) {
+        window.clearTimeout(timeoutHandle);
+      }
+    };
+  }, [isAuthed, user?.role]);
 
   const appRoutes = (
     <Suspense fallback={<RouteLoadingFallback />}>
