@@ -91,7 +91,8 @@ export default function AdminEvaluations() {
     user_assigned: '',
     evaluation: '',
     scoringIds: [],
-    deadline: ''
+    deadline_date: '',
+    deadline_time: ''
   });
 
   const [viewEval, setViewEval] = useState(null);
@@ -309,17 +310,21 @@ export default function AdminEvaluations() {
       return;
     }
 
+    const deadline = assignForm.deadline_date
+      ? `${assignForm.deadline_date}T${assignForm.deadline_time || '23:59'}`
+      : '';
+
     const payload = {
       user_assigned: assignForm.user_assigned,
       evaluation: assignForm.evaluation,
       evaluation_scorings: assignForm.scoringIds,
-      ...(assignForm.deadline ? { deadline: assignForm.deadline } : {})
+      ...(deadline ? { deadline } : {})
     };
 
     try {
       await apiFetch('/admin/assignments', { method: 'POST', body: JSON.stringify(payload) });
       setMsg('Assignment created.');
-      setAssignForm({ user_assigned: '', evaluation: '', scoringIds: [], deadline: '' });
+      setAssignForm({ user_assigned: '', evaluation: '', scoringIds: [], deadline_date: '', deadline_time: '' });
       await loadAll();
     } catch (e2) {
       setError(e2.message);
@@ -327,10 +332,10 @@ export default function AdminEvaluations() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 text-base-content font-sans">
-      <div className="container mx-auto p-6 max-w-7xl animate-fade-in">
+    <div className="min-h-screen bg-base-200 text-base-content font-sans admin-evaluations-shell">
+      <div className="container mx-auto p-6 max-w-7xl animate-fade-in admin-evaluations-content">
         {/* Header */}
-        <div className="flex justify-between items-end mb-8 border-b border-base-200 pb-4">
+        <div className="flex justify-between items-end mb-8 border-b border-base-200 pb-4 admin-eval-header">
           <div>
             <h1 className="text-3xl font-bold text-base-content">
               Evaluation Management
@@ -339,18 +344,6 @@ export default function AdminEvaluations() {
               Manage your evaluation pipeline: upload outputs, configure scoring, and assign to experts.
             </p>
           </div>
-          <button
-            className="btn btn-ghost btn-sm gap-2"
-            onClick={loadAll}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="modern-loader modern-loader-xs modern-loader-inline" aria-hidden="true"></span>
-                Refreshing...
-              </>
-            ) : 'Refresh Data'}
-          </button>
         </div>
 
         {msg && (
@@ -369,7 +362,7 @@ export default function AdminEvaluations() {
 
         {loading && !evaluations.length ? (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 admin-eval-action-grid">
               {Array.from({ length: 3 }).map((_, idx) => (
                 <div key={`admin-eval-skeleton-card-${idx}`} className="card bg-base-100 shadow-xl border border-base-200">
                   <div className="card-body">
@@ -408,7 +401,7 @@ export default function AdminEvaluations() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* CARD 1: Upload Evaluation */}
-              <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300">
+              <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300 admin-eval-card admin-eval-card-upload">
                 <div className="card-body">
                   <h2 className="card-title text-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
@@ -417,7 +410,7 @@ export default function AdminEvaluations() {
                   <div className="division h-px bg-base-200 my-2"></div>
 
                   <form onSubmit={createEvaluation} className="space-y-4">
-                    <div className="tabs tabs-boxed bg-base-200/50 p-1 mb-4">
+                    <div className="tabs tabs-boxed bg-base-200/50 p-1 mb-4 admin-eval-tabs">
                       <a className={`tab flex-1 ${activeTab === 'file' ? 'tab-active' : ''}`} onClick={() => setActiveTab('file')}>File Upload</a>
                       <a className={`tab flex-1 ${activeTab === 'json' ? 'tab-active' : ''}`} onClick={() => setActiveTab('json')}>Paste JSON</a>
                       <a className={`tab flex-1 ${activeTab === 'manual' ? 'tab-active' : ''}`} onClick={() => setActiveTab('manual')}>Manual Entry</a>
@@ -426,7 +419,7 @@ export default function AdminEvaluations() {
                     {activeTab === 'file' && (
                       <div className="form-control">
                         <label className="label"><span className="label-text font-medium">JSON File</span></label>
-                        <input type="file" className="file-input file-input-bordered file-input-primary w-full" accept="application/json" onChange={onEvalJsonFile} />
+                        <input type="file" className="file-input file-input-bordered file-input-primary w-full admin-eval-field" accept="application/json" onChange={onEvalJsonFile} />
                       </div>
                     )}
 
@@ -434,7 +427,7 @@ export default function AdminEvaluations() {
                       <div className="form-control">
                         <label className="label"><span className="label-text font-medium">JSON Content (Auto-fills below)</span></label>
                         <textarea
-                          className="textarea textarea-bordered h-32 font-mono text-sm"
+                          className="textarea textarea-bordered h-32 font-mono text-sm admin-eval-field admin-eval-json-textarea"
                           value={evalForm.jsonText}
                           onChange={handleJsonChange}
                           placeholder='{ "items": [...] }'
@@ -443,18 +436,18 @@ export default function AdminEvaluations() {
                     )}
 
                     {activeTab === 'manual' && (
-                      <div className="space-y-3 bg-base-200/30 p-3 rounded-xl border border-base-200 max-h-60 overflow-y-auto custom-scrollbar">
+                      <div className="space-y-3 bg-base-200/30 p-3 rounded-xl border border-base-200 max-h-60 overflow-y-auto custom-scrollbar admin-eval-manual-wrap">
                         {manualItems.map((item, idx) => (
                           <div key={idx} className="flex gap-2 items-start animate-fade-in-up">
                             <div className="flex-1 space-y-2">
                               <input
-                                className="input input-bordered input-sm w-full"
+                                className="input input-bordered input-sm w-full admin-eval-field"
                                 placeholder="Question / Query"
                                 value={item.query}
                                 onChange={e => updateManualItem(idx, 'query', e.target.value)}
                               />
                               <textarea
-                                className="textarea textarea-bordered textarea-sm w-full leading-tight"
+                                className="textarea textarea-bordered textarea-sm w-full leading-tight admin-eval-field"
                                 placeholder="LLM Response"
                                 rows={2}
                                 value={item.llm_response}
@@ -473,7 +466,7 @@ export default function AdminEvaluations() {
                         ))}
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm w-full border-dashed border-base-300"
+                          className="btn btn-ghost btn-sm w-full border-dashed border-base-300 admin-eval-add-item-btn"
                           onClick={addManualItem}
                         >
                           + Add Item
@@ -487,7 +480,7 @@ export default function AdminEvaluations() {
                       <label className="label"><span className="label-text font-medium">Evaluation Title</span></label>
                       <input
                         type="text"
-                        className="input input-bordered w-full"
+                        className="input input-bordered w-full admin-eval-field"
                         value={evalForm.filename}
                         onChange={(e) => setEvalForm((p) => ({ ...p, filename: e.target.value }))}
                         placeholder="e.g. Test Sim 1"
@@ -497,7 +490,7 @@ export default function AdminEvaluations() {
                       <label className="label"><span className="label-text font-medium">Version Tag</span></label>
                       <input
                         type="text"
-                        className="input input-bordered w-full"
+                        className="input input-bordered w-full admin-eval-field"
                         value={evalForm.rag_version}
                         onChange={(e) => setEvalForm((p) => ({ ...p, rag_version: e.target.value }))}
                         placeholder="e.g. v1.0"
@@ -505,14 +498,14 @@ export default function AdminEvaluations() {
                     </div>
 
                     <div className="card-actions justify-end mt-4">
-                      <button className="btn btn-primary w-full" type="submit">Upload Evaluation</button>
+                      <button className="btn btn-primary w-full admin-eval-submit-btn" type="submit">Upload Evaluation</button>
                     </div>
                   </form>
                 </div>
               </div>
 
               {/* CARD 2: Create Scoring */}
-              <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300">
+              <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300 admin-eval-card admin-eval-card-dimension">
                 <div className="card-body">
                   <h2 className="card-title text-secondary">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
@@ -525,7 +518,7 @@ export default function AdminEvaluations() {
                       <label className="label"><span className="label-text font-medium">Dimension Name</span></label>
                       <input
                         type="text"
-                        className="input input-bordered w-full"
+                        className="input input-bordered w-full admin-eval-field"
                         value={scoreForm.dimension_name}
                         onChange={(e) => setScoreForm((p) => ({ ...p, dimension_name: e.target.value }))}
                         required
@@ -536,7 +529,7 @@ export default function AdminEvaluations() {
                       <label className="label"><span className="label-text font-medium">Description</span></label>
                       <input
                         type="text"
-                        className="input input-bordered w-full"
+                        className="input input-bordered w-full admin-eval-field"
                         value={scoreForm.dimension_description}
                         onChange={(e) => setScoreForm((p) => ({ ...p, dimension_description: e.target.value }))}
                         placeholder="Brief explanation..."
@@ -547,7 +540,7 @@ export default function AdminEvaluations() {
                       <div className="form-control">
                         <label className="label"><span className="label-text font-medium">Type</span></label>
                         <select
-                          className="select select-bordered w-full"
+                          className="select select-bordered w-full admin-eval-field admin-eval-select"
                           value={scoreForm.type}
                           onChange={(e) => {
                             const nextType = e.target.value;
@@ -571,7 +564,7 @@ export default function AdminEvaluations() {
                           <label className="label"><span className="label-text font-medium">Min</span></label>
                           <input
                             type="number"
-                            className="input input-bordered w-full px-2"
+                            className="input input-bordered w-full px-2 admin-eval-field"
                             value={scoreForm.min_range}
                             disabled={isBooleanScoring}
                             onChange={(e) => setScoreForm((p) => ({ ...p, min_range: e.target.value }))}
@@ -581,7 +574,7 @@ export default function AdminEvaluations() {
                           <label className="label"><span className="label-text font-medium">Max</span></label>
                           <input
                             type="number"
-                            className="input input-bordered w-full px-2"
+                            className="input input-bordered w-full px-2 admin-eval-field"
                             value={scoreForm.max_range}
                             disabled={isBooleanScoring}
                             onChange={(e) => setScoreForm((p) => ({ ...p, max_range: e.target.value }))}
@@ -596,7 +589,7 @@ export default function AdminEvaluations() {
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Criteria JSON (Optional)</span></label>
                       <textarea
-                        className="textarea textarea-bordered h-24 font-mono text-sm"
+                        className="textarea textarea-bordered h-24 font-mono text-sm admin-eval-field admin-eval-criteria-textarea"
                         value={scoreForm.criteriaJson}
                         onChange={(e) => setScoreForm((p) => ({ ...p, criteriaJson: e.target.value }))}
                         placeholder='[{"value":1,"description":"Bad"}]'
@@ -604,14 +597,14 @@ export default function AdminEvaluations() {
                     </div>
 
                     <div className="card-actions justify-end mt-4">
-                      <button className="btn btn-secondary w-full" type="submit">Create Dimension</button>
+                      <button className="btn btn-secondary w-full admin-eval-submit-btn" type="submit">Create Dimension</button>
                     </div>
                   </form>
                 </div>
               </div>
 
               {/* CARD 3: Assign Evaluation */}
-              <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300">
+              <div className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300 admin-eval-card admin-eval-card-assign">
                 <div className="card-body">
                   <h2 className="card-title text-accent">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -622,7 +615,7 @@ export default function AdminEvaluations() {
                   <form onSubmit={createAssignment} className="space-y-4">
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Select Expert</span></label>
-                      <select className="select select-bordered w-full" value={assignForm.user_assigned} onChange={(e) => setAssignForm((p) => ({ ...p, user_assigned: e.target.value }))} required>
+                      <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.user_assigned} onChange={(e) => setAssignForm((p) => ({ ...p, user_assigned: e.target.value }))} required>
                         <option value="">Choose...</option>
                         {expertUsers.map((u) => (
                           <option key={u.id} value={u.id}>{u.username} ({u.group})</option>
@@ -631,7 +624,7 @@ export default function AdminEvaluations() {
                     </div>
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Select Evaluation</span></label>
-                      <select className="select select-bordered w-full" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
+                      <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
                         <option value="">Choose...</option>
                         {evaluations.map((ev) => (
                           <option key={ev._id} value={ev._id}>{ev.filename} ({ev.items?.length || 0} items)</option>
@@ -641,11 +634,14 @@ export default function AdminEvaluations() {
 
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Scoring Dimensions</span></label>
-                      <div className="bg-base-200/50 rounded-lg p-3 h-40 overflow-y-auto border border-base-300 custom-scrollbar">
+                      <div className="bg-base-200/50 rounded-lg p-3 h-40 overflow-y-auto border border-base-300 custom-scrollbar admin-eval-scoring-list">
                         {scorings.length === 0 && <p className="text-sm opacity-50 italic text-center py-4">No content yet.</p>}
                         {scorings.map((s) => (
-                          <label key={s._id} className="label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors">
-                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent" checked={assignForm.scoringIds.includes(s._id)} onChange={() => toggleScoring(s._id)} />
+                          <label
+                            key={s._id}
+                            className={`label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors admin-eval-scoring-item${assignForm.scoringIds.includes(s._id) ? ' admin-eval-scoring-item-selected' : ''}`}
+                          >
+                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent admin-eval-score-checkbox" checked={assignForm.scoringIds.includes(s._id)} onChange={() => toggleScoring(s._id)} />
                             <div className="leading-tight">
                               <span className="font-semibold block">{s.dimension_name}</span>
                               <span className="text-xs opacity-60 block">{s.type} ({s.min_range}-{s.max_range})</span>
@@ -657,11 +653,27 @@ export default function AdminEvaluations() {
 
                     <div className="form-control">
                       <label className="label"><span className="label-text font-medium">Deadline (Optional)</span></label>
-                      <input type="datetime-local" className="input input-bordered w-full" value={assignForm.deadline} onChange={(e) => setAssignForm((p) => ({ ...p, deadline: e.target.value }))} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 admin-eval-deadline-grid">
+                        <input
+                          type="date"
+                          className="input input-bordered w-full admin-eval-field admin-eval-deadline-date"
+                          value={assignForm.deadline_date}
+                          onChange={(e) => setAssignForm((p) => ({ ...p, deadline_date: e.target.value }))}
+                        />
+                        <input
+                          type="time"
+                          className="input input-bordered w-full admin-eval-field admin-eval-deadline-time"
+                          value={assignForm.deadline_time}
+                          onChange={(e) => setAssignForm((p) => ({ ...p, deadline_time: e.target.value }))}
+                        />
+                      </div>
+                      <span className="text-xs opacity-60 mt-1 block admin-eval-deadline-note">
+                        Time defaults to 23:59 if left blank.
+                      </span>
                     </div>
 
                     <div className="card-actions justify-end mt-4">
-                      <button className="btn btn-accent w-full" type="submit">Assign Task</button>
+                      <button className="btn btn-accent w-full admin-eval-submit-btn" type="submit">Assign Task</button>
                     </div>
                   </form>
                 </div>
@@ -669,9 +681,9 @@ export default function AdminEvaluations() {
             </div>
 
             {/* LISTS GRID */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 admin-eval-list-grid">
               {/* Evaluations List */}
-              <div className="card bg-base-100 shadow-lg border border-base-200">
+              <div className="card bg-base-100 shadow-lg border border-base-200 admin-eval-list-card">
                 <div className="card-body p-6">
                   <h3 className="card-title text-lg mb-4 flex justify-between">
                     <span>Evaluations</span>
@@ -714,7 +726,7 @@ export default function AdminEvaluations() {
               </div>
 
               {/* Assignments List */}
-              <div className="card bg-base-100 shadow-lg border border-base-200">
+              <div className="card bg-base-100 shadow-lg border border-base-200 admin-eval-list-card">
                 <div className="card-body p-6">
                   <h3 className="card-title text-lg mb-4 flex justify-between">
                     <span>Assignments</span>

@@ -4,6 +4,22 @@ const { mongo, sql } = require("../models");
 const jwt = require("jsonwebtoken");
 
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
+const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "15m";
+
+function issueAccessToken(userPayload = {}) {
+    return jwt.sign(
+        {
+            id: String(userPayload?.id || ""),
+            role: userPayload?.role,
+            username: userPayload?.username,
+            group: userPayload?.group,
+            email: userPayload?.email || null,
+            sid: String(userPayload?.sid || "")
+        },
+        process.env.JWT_SECRET || "default_secret_key",
+        { expiresIn: ACCESS_TOKEN_TTL }
+    );
+}
 
 async function login(req, res) {
     try {
@@ -129,9 +145,12 @@ async function heartbeat(req, res) {
             { where: { id: userId }, silent: true }
         );
 
+        const accessToken = issueAccessToken(req.user);
+
         return res.json({
             ok: true,
-            serverTime: now.toISOString()
+            serverTime: now.toISOString(),
+            accessToken
         });
     } catch (e) {
         return res.status(500).json({ error: e.message || "Failed to update heartbeat" });

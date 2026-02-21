@@ -7,6 +7,7 @@ const { sql, mongo } = require("../models");
 
 const VALID_PRESENCE_STATUSES = new Set(["auto", "online", "idle", "dnd", "invisible"]);
 const ACTIVE_SESSION_WINDOW_MS = Number(process.env.ACTIVE_SESSION_WINDOW_MS || 15 * 60 * 1000);
+const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "15m";
 // Temporary rollout setting:
 // keep multi-device login allowed unless explicitly enabled.
 const ENFORCE_SINGLE_DEVICE_SESSION = String(process.env.ENFORCE_SINGLE_DEVICE_SESSION || "false").toLowerCase() === "true";
@@ -99,7 +100,7 @@ async function login({ username, password, deviceFingerprint, req }) {
                 sid: sessionId
             },
             process.env.JWT_SECRET || "default_secret_key",
-            { expiresIn: "15m" }
+            { expiresIn: ACCESS_TOKEN_TTL }
         );
 
         const refreshToken = makeRefreshToken();

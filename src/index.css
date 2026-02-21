@@ -2306,3 +2306,266 @@ button:focus-visible {
     padding: 1rem;
   }
 }
+
+/* Evaluation Management visual rework (light mode, subdued neutral palette) */
+.admin-evaluations-shell .card {
+  border-radius: 16px;
+}
+
+[data-theme="light"] .admin-evaluations-shell {
+  color: #0f172a;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-header {
+  border-bottom-color: #cfd8e6 !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .card {
+  border-color: #d3dbea !important;
+  background: #f7f9fc !important;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-card:hover {
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .admin-evaluations-shell .card-title {
+  color: #111827 !important;
+  font-size: 1.03rem;
+  letter-spacing: 0.002em;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-card-upload .card-title svg {
+  color: #6366f1;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-card-dimension .card-title svg {
+  color: #db2777;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-card-assign .card-title svg {
+  color: #0f9f93;
+}
+
+[data-theme="light"] .admin-evaluations-shell .division {
+  background: #d4ddea !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .label-text {
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-field {
+  border: 1.6px solid #8ea0b8 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  min-height: 44px;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-json-textarea,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-criteria-textarea {
+  border: 1.5px solid #9aacc4 !important;
+  background: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(220, 229, 241, 0.85);
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-field::placeholder {
+  color: #6f7f95 !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-field:hover {
+  border-color: #7289a9 !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-field:focus,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-field:focus-visible {
+  outline: none !important;
+  border-color: #3b5677 !important;
+  box-shadow: 0 0 0 3px rgba(59, 86, 119, 0.18) !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-json-textarea:focus,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-json-textarea:focus-visible,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-criteria-textarea:focus,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-criteria-textarea:focus-visible {
+  border-color: #3f5f89 !important;
+  box-shadow: 0 0 0 3px rgba(63, 95, 137, 0.16), inset 0 0 0 1px rgba(194, 208, 227, 0.75) !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5 10 12.5 15 7.5' stroke='%23425570' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.2rem !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-deadline-date,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-deadline-time {
+  min-height: 44px;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-deadline-note {
+  color: #5b6d84 !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-deadline-date::-webkit-calendar-picker-indicator,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-deadline-time::-webkit-calendar-picker-indicator {
+  opacity: 0.72;
+  cursor: pointer;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-deadline-date::-webkit-datetime-edit,
+[data-theme="light"] .admin-evaluations-shell .admin-eval-deadline-time::-webkit-datetime-edit {
+  color: #1f2b3d;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+[data-theme="light"] .admin-evaluations-shell .tabs-boxed {
+  background: #ebf0f7 !important;
+  border: 1px solid #d0d9e8;
+  border-radius: 12px;
+}
+
+[data-theme="light"] .admin-evaluations-shell .tabs-boxed .tab {
+  color: #4b5563;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+[data-theme="light"] .admin-evaluations-shell .tabs-boxed .tab.tab-active {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  box-shadow: inset 0 0 0 1px #c6d3e6;
+}
+
+[data-theme="light"] .admin-evaluations-shell .bg-base-200\/30,
+[data-theme="light"] .admin-evaluations-shell .bg-base-200\/50 {
+  background: #edf2f8 !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-scoring-list {
+  border-color: #b8c5d8 !important;
+  background: #eef3f9 !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-scoring-item {
+  border: 1px solid #d2dbe8;
+  background: #ffffff;
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-scoring-item:hover {
+  border-color: #b8c7db;
+  background: #f8fbff !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-scoring-item-selected {
+  border-color: #93a9c8;
+  background: #f1f6fd !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .table :where(th, td) {
+  border-color: #d6deea !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .table thead th {
+  color: #4b5563;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="light"] .admin-evaluations-shell .table tbody tr:hover {
+  background: #edf3fa;
+}
+
+[data-theme="light"] .admin-evaluations-shell .badge-outline,
+[data-theme="light"] .admin-evaluations-shell .badge-ghost {
+  border-color: #c6d1e0;
+  background: #f3f7fc;
+  color: #475569;
+}
+
+[data-theme="light"] .admin-evaluations-shell .btn-primary,
+[data-theme="light"] .admin-evaluations-shell .btn-secondary,
+[data-theme="light"] .admin-evaluations-shell .btn-accent {
+  border: 1px solid #0f172a !important;
+  background: linear-gradient(180deg, #1f2937 0%, #0f172a 100%) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.22) !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .btn-primary:hover,
+[data-theme="light"] .admin-evaluations-shell .btn-secondary:hover,
+[data-theme="light"] .admin-evaluations-shell .btn-accent:hover {
+  border-color: #111827 !important;
+  background: linear-gradient(180deg, #111827 0%, #020617 100%) !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .btn-ghost {
+  border: 1px solid #c3cfde !important;
+  background: #f7f9fc !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .btn-ghost:hover {
+  border-color: #abbad0 !important;
+  background: #eff4fb !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-score-checkbox {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  min-width: 1.05rem;
+  border: 2px solid #8ea2bc !important;
+  border-radius: 9999px !important;
+  background: #ffffff !important;
+  display: inline-grid;
+  place-content: center;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-score-checkbox::before {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 9999px;
+  background: #2f4d75;
+  transform: scale(0);
+  transition: transform 120ms ease;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-score-checkbox:checked {
+  border-color: #2f4d75 !important;
+  background: #e9f0fa !important;
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-score-checkbox:checked::before {
+  transform: scale(1);
+}
+
+[data-theme="light"] .admin-evaluations-shell .admin-eval-score-checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(63, 95, 137, 0.18);
+}
+
+[data-theme="dark"] .admin-evaluations-shell .card {
+  border-color: #212833 !important;
+  background: #090d12 !important;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.44) !important;
+}

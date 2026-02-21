@@ -103,10 +103,14 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      await apiFetch('/auth/heartbeat', {
+      const data = await apiFetch('/auth/heartbeat', {
         method: 'POST',
         body: JSON.stringify({})
       });
+      if (data?.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+        setToken(data.accessToken);
+      }
       lastHeartbeatSentAt.current = now;
     } catch {
       // Ignore transient heartbeat failures.
