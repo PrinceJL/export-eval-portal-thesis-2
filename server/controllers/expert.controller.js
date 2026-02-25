@@ -1,5 +1,5 @@
-const { sql } = require("../models");
-const { EvaluationAssignment, EvaluationOutput, ModelVersion, EvaluationCriteria, EvaluationResponse, EvaluationNote } = sql;
+const { sql, mongo } = require("../models");
+const { EvaluationAssignment, EvaluationOutput, ModelVersion, EvaluationResponse, EvaluationNote } = sql;
 
 function getAuthedUserId(req) {
   const id = req?.user?.id;
@@ -31,14 +31,24 @@ async function getMyAssignments(req, res) {
     // Transform to match frontend props
     const mapped = assignments.map(a => {
       const json = a.toJSON();
+      // Fallback for older items that don't have a modelVersion
+      let fallbackName = 'Item';
+      if (!json.output?.modelVersion?.model_name && json.output?.output_text) {
+        try {
+          // If the output text is standard JSON string from legacy endpoints
+          // It might be small enough to just use a substring or simply default to 'Legacy Evaluation'
+          fallbackName = 'Legacy Evaluation';
+        } catch (e) { }
+      }
+
       return {
         _id: json.id,
         date_assigned: json.assigned_at,
         deadline: json.deadline,
         completion_status: json.status === 'COMPLETED',
         evaluation: {
-          // Formatting title from output text or ID since SQL doesn't have filename for output
-          filename: `Evaluation ${json.output?.modelVersion?.model_name || 'Item'}`,
+          id: json.output?.id,
+          filename: json.output?.modelVersion?.model_name || fallbackName,
           rag_version: json.output?.modelVersion?.version || 'v1.0'
         },
         ...json
@@ -51,6 +61,156 @@ async function getMyAssignments(req, res) {
     res.status(500).json({
       error: err.message || "Failed to fetch assignments"
     });
+  }
+}
+
+async function getExpertStats(req, res) {
+  try {
+    const userId = getAuthedUserId(req);
+
+    // 1. Fetch Assignments
+    const assignments = await EvaluationAssignment.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: EvaluationResponse,
+          as: 'responses'
+        },
+        {
+          model: EvaluationOutput,
+          as: 'output',
+          include: [{ model: ModelVersion, as: 'modelVersion' }]
+        }
+      ],
+      order: [['deadline', 'ASC']]
+    });
+
+    const evaluations = assignments.map(a => {
+      const json = a.toJSON();
+      let fallbackName = 'Item';
+      if (!json.output?.modelVersion?.model_name && json.output?.output_text) {
+        try {
+          fallbackName = 'Legacy Evaluation';
+        } catch (e) { }
+      }
+      return {
+        _id: json.id,
+        date_assigned: json.assigned_at,
+        deadline: json.deadline,
+        completion_status: json.status === 'COMPLETED',
+        evaluation: {
+          id: json.output?.id,
+          filename: json.output?.modelVersion?.model_name || fallbackName,
+          rag_version: json.output?.modelVersion?.version || 'v1.0'
+        },
+        ...json
+      };
+    });
+
+    // 2. Fetch Active Dimensions
+    // Try to rely on EvaluationScoring (MongoDB) for dimensions instead since it's the active system
+    let rawDimensions = [];
+    try {
+      rawDimensions = await mongo.mongoose.connection.db.collection('evaluationscorings').find({}).toArray();
+    } catch (e) {
+      // fallback if model isn't directly exposed
+      const evalSchema = require('../models/evalV2/evaluation_scoring.model');
+      rawDimensions = await evalSchema.find({});
+    }
+
+    // 3. Compute Dimension Performance
+    const dimensionStats = {};
+    rawDimensions.forEach(dim => {
+      dimensionStats[dim._id.toString()] = {
+        name: dim.name,
+        type: dim.type,
+        description: dim.description || '',
+        totalScore: 0,
+        count: 0
+      };
+    });
+
+    let totalPossibleScore = 0;
+    let earnedScore = 0;
+
+    assignments.forEach(assignment => {
+      if (assignment.status === 'COMPLETED' && Array.isArray(assignment.responses)) {
+        assignment.responses.forEach(response => {
+          const criteriaId = response.criteria_id;
+          const score = parseFloat(response.score) || 0;
+
+          if (dimensionStats[criteriaId]) {
+            dimensionStats[criteriaId].totalScore += score;
+            dimensionStats[criteriaId].count++;
+          }
+
+          // For overall circular progress (simple sum/max logic for now)
+          // Normalize boolean to 0-5 mapping just for visual stats, or just use raw score if likert
+          let normalizedScore = score;
+          if (dimensionStats[criteriaId] && dimensionStats[criteriaId].type === 'boolean') {
+            normalizedScore = score > 0 ? 5 : 0;
+          }
+          earnedScore += normalizedScore;
+          totalPossibleScore += 5; // Assuming max 5 scale for Likert and mapped Boolean
+        });
+      }
+    });
+
+    const dimensions = [];
+    Object.keys(dimensionStats).forEach(key => {
+      const stat = dimensionStats[key];
+      if (stat.count > 0) {
+        const avg = stat.totalScore / stat.count;
+        let sentiment = 'neutral';
+        if (stat.type === 'likert') {
+          if (avg >= 4) sentiment = 'positive';
+          else if (avg <= 2) sentiment = 'negative';
+        } else {
+          if (avg >= 0.8) sentiment = 'positive';
+          else if (avg <= 0.4) sentiment = 'negative';
+        }
+
+        dimensions.push({
+          _id: key,
+          name: stat.name,
+          description: stat.description,
+          avgScore: avg.toFixed(1),
+          sentiment
+        });
+      }
+    });
+
+    // 4. Fetch Global Settings
+    let settings = {
+      dashboardTargetPerformance: 85,
+      dashboardShowDimensions: true,
+      dashboardShowMetrics: true
+    };
+
+    try {
+      const SystemSettings = require('../models/mongo/system_settings.model');
+      const dbSettings = await SystemSettings.findOne({ type: 'DASHBOARD_CONFIG' });
+      if (dbSettings) {
+        settings = dbSettings;
+      }
+    } catch (e) {
+      console.warn("Could not fetch global dashboard settings", e);
+    }
+
+    // 5. Build final payload
+    res.json({
+      evaluations,
+      dimensions,
+      settings,
+      performance: {
+        totalPossibleScore,
+        earnedScore
+      }
+    });
+
+  } catch (err) {
+    console.error("getExpertStats error:", err);
+    res.status(500).json({ error: "Failed to fetch expert stats" });
   }
 }
 
@@ -71,7 +231,6 @@ async function getAssignmentById(req, res) {
           model: EvaluationResponse,
           as: 'responses',
           include: [
-            { model: EvaluationCriteria, as: 'criteria' },
             { model: EvaluationNote, as: 'notes' }
           ]
         }
@@ -87,40 +246,28 @@ async function getAssignmentById(req, res) {
     if (!isOwner && !isAdmin) return res.status(403).json({ error: "Forbidden" });
 
     // Also fetch all available criteria so frontend knows what to render
-    const allCriteria = await EvaluationCriteria.findAll();
+    const EvaluationScoring = require("../models/evalV2/evaluation_scoring.model");
+    const allCriteria = await EvaluationScoring.find();
 
     // Transform response for frontend props
     const jsonObj = assignment.toJSON();
 
-    // 1. Mock "evaluation_scorings" from allCriteria (since UI expects them assigned)
-    // In SQL, criteria are global. We'll map them to the structure the UI expects.
-    // Group criteria by dimension name to simulate "dimensions"
-    const groupedCriteria = {};
-    allCriteria.forEach(c => {
-      if (!groupedCriteria[c.dimension_name]) {
-        groupedCriteria[c.dimension_name] = {
-          _id: `dim_${c.dimension_name}`, // Fake ID
-          dimension_name: c.dimension_name,
-          dimension_description: c.description,
-          min_range: c.min_value || 1,
-          max_range: c.max_value || 5,
-          criteria: []
-        };
-      }
-      groupedCriteria[c.dimension_name].criteria.push({
-        value: 1, // SQL simplificiation: we don't store per-value desc yet, mocking
-        name: "Low",
-        description: "Low score"
-      });
-      // Add high
-      groupedCriteria[c.dimension_name].criteria.push({
-        value: 5,
-        name: "High",
-        description: "High score"
-      });
-    });
+    // Filter to only included dimensions if scoring_ids exist on the assignment
+    let activeCriteria = allCriteria;
+    if (Array.isArray(jsonObj.scoring_ids) && jsonObj.scoring_ids.length > 0) {
+      activeCriteria = allCriteria.filter(c => jsonObj.scoring_ids.includes(c._id.toString()));
+    }
 
-    const evalScorings = Object.values(groupedCriteria);
+    // Map Mongo objects directly to UI shape
+    const evalScorings = activeCriteria.map(c => ({
+      _id: c._id.toString(),
+      dimension_name: c.dimension_name,
+      dimension_description: c.dimension_description,
+      min_range: c.min_range,
+      max_range: c.max_range,
+      type: c.type,
+      criteria: c.criteria
+    }));
 
     // Parse items from output_text. 
     // Try JSON first, fallback to legacy text format
@@ -227,7 +374,7 @@ async function submitAssignmentScores(req, res) {
     });
 
     const updated = await EvaluationAssignment.findByPk(id, {
-      include: [{ model: EvaluationResponse, as: 'responses' }]
+      include: [] // Remove the old responses include which triggered the 500
     });
     res.json(updated);
 
@@ -324,5 +471,6 @@ module.exports = {
   saveAssignmentDraft,
   createScoring,
   saveDraft,
-  submitFinalEvaluation
+  submitFinalEvaluation,
+  getExpertStats
 };

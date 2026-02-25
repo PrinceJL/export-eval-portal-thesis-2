@@ -96,6 +96,7 @@ export default function AdminEvaluations() {
   });
 
   const [viewEval, setViewEval] = useState(null);
+  const [viewAssignment, setViewAssignment] = useState(null);
 
   const expertUsers = useMemo(() => users.filter((u) => u.role === 'EXPERT' && u.isActive), [users]);
   const isBooleanScoring = scoreForm.type === 'Boolean';
@@ -313,6 +314,15 @@ export default function AdminEvaluations() {
     const deadline = assignForm.deadline_date
       ? `${assignForm.deadline_date}T${assignForm.deadline_time || '23:59'}`
       : '';
+
+    if (deadline) {
+      const selectedDate = new Date(deadline);
+      const now = new Date();
+      if (selectedDate <= now) {
+        setError('Deadline cannot be today or in the past.');
+        return;
+      }
+    }
 
     const payload = {
       user_assigned: assignForm.user_assigned,
@@ -642,7 +652,7 @@ export default function AdminEvaluations() {
                         <select className="select select-bordered w-full admin-eval-field admin-eval-select" value={assignForm.evaluation} onChange={(e) => setAssignForm((p) => ({ ...p, evaluation: e.target.value }))} required>
                           <option value="">Choose...</option>
                           {evaluations.map((ev) => (
-                            <option key={ev._id} value={ev._id}>{ev.filename} ({ev.items?.length || 0} items)</option>
+                            <option key={ev.id || ev._id} value={ev.id || ev._id}>{ev.filename} ({ev.items?.length || 0} items)</option>
                           ))}
                         </select>
                         <span className="admin-eval-select-caret" aria-hidden="true">
@@ -659,10 +669,10 @@ export default function AdminEvaluations() {
                         {scorings.length === 0 && <p className="text-sm opacity-50 italic text-center py-4">No content yet.</p>}
                         {scorings.map((s) => (
                           <label
-                            key={s._id}
-                            className={`label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors admin-eval-scoring-item${assignForm.scoringIds.includes(s._id) ? ' admin-eval-scoring-item-selected' : ''}`}
+                            key={s.id || s._id}
+                            className={`label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded p-2 transition-colors admin-eval-scoring-item${assignForm.scoringIds.includes(s.id || s._id) ? ' admin-eval-scoring-item-selected' : ''}`}
                           >
-                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent admin-eval-score-checkbox" checked={assignForm.scoringIds.includes(s._id)} onChange={() => toggleScoring(s._id)} />
+                            <input type="checkbox" className="checkbox checkbox-sm checkbox-accent admin-eval-score-checkbox" checked={assignForm.scoringIds.includes(s.id || s._id)} onChange={() => toggleScoring(s.id || s._id)} />
                             <div className="leading-tight">
                               <span className="font-semibold block">{s.dimension_name}</span>
                               <span className="text-xs opacity-60 block">{s.type} ({s.min_range}-{s.max_range})</span>
@@ -679,6 +689,7 @@ export default function AdminEvaluations() {
                           type="date"
                           className="input input-bordered w-full admin-eval-field admin-eval-deadline-date"
                           value={assignForm.deadline_date}
+                          min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => setAssignForm((p) => ({ ...p, deadline_date: e.target.value }))}
                         />
                         <input
@@ -722,16 +733,18 @@ export default function AdminEvaluations() {
                       </thead>
                       <tbody>
                         {evaluations.map((ev) => (
-                          <tr key={ev._id} className="hover">
+                          <tr key={ev.id || ev._id} className="hover">
                             <td className="font-medium">{ev.filename}</td>
                             <td className="text-xs opacity-70">
-                              <div className="badge badge-ghost badge-sm mr-1">{ev.rag_version}</div>
-                              {ev.items?.length || 0} items
+                              <div className="flex items-center gap-2">
+                                <div className="badge badge-ghost badge-sm">{ev.rag_version}</div>
+                                <span>{ev.items?.length || 0} items</span>
+                              </div>
                             </td>
                             <td className="text-xs opacity-50">{fmtDate(ev.createdAt)}</td>
                             <td>
                               <button
-                                className="btn btn-xs btn-ghost border border-base-300"
+                                className="btn btn-xs btn-ghost border border-base-300 whitespace-nowrap"
                                 onClick={() => setViewEval(ev)}
                               >
                                 View Items
@@ -760,32 +773,39 @@ export default function AdminEvaluations() {
                           <th>Evaluation</th>
                           <th>Assignee</th>
                           <th>Status</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {assignments.map((a) => (
-                          <tr key={a._id} className="hover">
+                          <tr key={a.id || a._id} className="hover">
                             <td className="font-medium truncate max-w-[150px]" title={a?.evaluation?.filename}>
                               {a?.evaluation?.filename || 'Unknown'}
                             </td>
                             <td>
-                              <div className="tooltip" data-tip={a.user_assigned}>
-                                {expertUsers.find(u => u.id === a.user_assigned)?.username || a.user_assigned}
+                              <div className="tooltip" data-tip={a?.user?.username || a?.user_assigned}>
+                                {a?.user?.username || 'Unknown'}
                               </div>
                               <div className="text-[10px] opacity-50">Deadline: {fmtDate(a.deadline)}</div>
                             </td>
                             <td>
-                              {a.final_submitted ? (
-                                <span className="badge badge-success badge-sm">Submitted</span>
-                              ) : a.completion_status ? (
-                                <span className="badge badge-warning badge-sm">Done (Unsent)</span>
+                              {a.status === 'COMPLETED' ? (
+                                <span className="badge badge-success badge-sm">Completed</span>
                               ) : (
                                 <span className="badge badge-ghost badge-sm">In Progress</span>
                               )}
                             </td>
+                            <td>
+                              <button
+                                className="btn btn-xs btn-ghost border border-base-300 whitespace-nowrap"
+                                onClick={() => setViewAssignment(a)}
+                              >
+                                View Details
+                              </button>
+                            </td>
                           </tr>
                         ))}
-                        {!assignments.length && <tr><td colSpan="3" className="text-center opacity-50 py-4">No data</td></tr>}
+                        {!assignments.length && <tr><td colSpan="4" className="text-center opacity-50 py-4">No data</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -793,6 +813,75 @@ export default function AdminEvaluations() {
               </div>
             </div>
           </div>
+        )}
+
+        {viewAssignment && (
+          <dialog className="modal modal-open animate-fade-in">
+            <div className="modal-box max-w-2xl">
+              <h3 className="font-bold text-lg mb-4 flex justify-between items-center">
+                <span>Assignment Details</span>
+                <button className="btn btn-sm btn-circle btn-ghost" onClick={() => setViewAssignment(null)}>✕</button>
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Evaluation</label>
+                  <p className="text-base font-medium">{viewAssignment?.evaluation?.filename || 'Unknown'}</p>
+                  <p className="text-sm opacity-70">Version: {viewAssignment?.evaluation?.rag_version || 'v1.0'}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Assignee</label>
+                    <p className="text-base font-medium">{viewAssignment?.user?.username || 'Unknown'}</p>
+                    <p className="text-sm opacity-70">{viewAssignment?.user?.email || ''}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Status</label>
+                    <p className="mt-1">
+                      {viewAssignment?.status === 'COMPLETED' ? (
+                        <span className="badge badge-success">Completed</span>
+                      ) : (
+                        <span className="badge badge-ghost">In Progress</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Deadline</label>
+                    <p className="text-base">{fmtDate(viewAssignment?.deadline)}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold opacity-50 uppercase tracking-wide">Assigned On</label>
+                    <p className="text-base">{fmtDate(viewAssignment?.assigned_at)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 border-t border-base-200 pt-4">
+                  <label className="text-xs font-bold opacity-50 uppercase tracking-wide block mb-2">Enabled Dimensions</label>
+                  {scorings.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {scorings.map((s) => (
+                        <div key={s.id || s._id} className="badge badge-primary badge-outline flex gap-1 p-3">
+                          <span className="font-semibold">{s.dimension_name}</span>
+                          <span className="opacity-60 text-xs text-base-content/60 lowercase">({s.type})</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm opacity-50">No Global Dimensions Set</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="modal-action mt-6">
+                <button className="btn" onClick={() => setViewAssignment(null)}>Close</button>
+              </div>
+            </div>
+            <div className="modal-backdrop bg-black/20" onClick={() => setViewAssignment(null)}></div>
+          </dialog>
         )}
 
         {viewEval && (

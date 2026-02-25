@@ -14,9 +14,13 @@ export const getAssignmentById = async (id) => {
 
 /* SUBMIT */
 export const submitEvaluation = async (id, payload) => {
+    const responses = payload.scores.map(s => ({
+        criteria_id: s.scoring,
+        score: s.score,
+        note: s.comments
+    }));
     const res = await api.post(`/expert/assignments/${id}/submit`, {
-        assignmentId: id,
-        user_evaluation_output: payload.scores // flatten to match schema
+        responses
     });
     return res.data;
 };

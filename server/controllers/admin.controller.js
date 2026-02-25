@@ -199,6 +199,7 @@ async function deleteUser(req, res) {
 }
 
 // ------------------ SCORINGS ------------------
+const EvaluationScoring = require("../models/evalV2/evaluation_scoring.model");
 
 async function listScorings(req, res) {
   try {
@@ -211,6 +212,20 @@ async function listScorings(req, res) {
 
 async function createScoring(req, res) {
   try {
+    const { dimension_name, dimension_description } = req.body;
+
+    if (!dimension_name || !dimension_name.trim()) {
+      return res.status(400).json({ error: "Dimension name is required" });
+    }
+
+    const existingDimension = await EvaluationScoring.findOne({
+      dimension_name: new RegExp(`^${dimension_name.trim()}$`, "i")
+    });
+
+    if (existingDimension) {
+      return res.status(400).json({ error: `A dimension with the name "${dimension_name}" already exists.` });
+    }
+
     const type = req.body?.type === "Boolean" ? "Boolean" : "Likert";
     const booleanMode = type === "Boolean";
     const min_range = booleanMode ? 0 : Number(req.body?.min_range);
@@ -224,6 +239,20 @@ async function createScoring(req, res) {
     }
 
     let criteria = normalizeScoringCriteria(req.body?.criteria || [], { booleanMode });
+
+    // Validate that there are no duplicate values or names in the submitted criteria
+    if (!booleanMode) {
+      const seenValues = new Set();
+      const seenNames = new Set();
+      for (const c of criteria) {
+        if (seenValues.has(c.value)) return res.status(400).json({ error: `Duplicate scoring value found: ${c.value}` });
+        const nameKey = c.criteria_name.toLowerCase();
+        if (seenNames.has(nameKey)) return res.status(400).json({ error: `Duplicate scoring option name found: ${c.criteria_name}` });
+
+        seenValues.add(c.value);
+        seenNames.add(nameKey);
+      }
+    }
 
     if (booleanMode) {
       const byValue = new Map();
@@ -287,7 +316,7 @@ async function listEvaluations(req, res) {
 
       return {
         id: o.id,
-        filename: `Evaluation ${o.modelVersion?.model_name || 'Item'}`,
+        filename: o.modelVersion?.model_name || 'Item',
         rag_version: o.modelVersion?.version || 'v1.0',
         createdAt: o.createdAt,
         items: items // Return actual items
@@ -352,9 +381,6 @@ async function listAssignments(req, res) {
     const where = {};
     if (req.query.user_assigned) where.user_id = req.query.user_assigned;
 
-    // Get total criteria count for progress calculation
-    const totalCriteria = await sql.EvaluationCriteria.count();
-
     const assignments = await sql.EvaluationAssignment.findAll({
       where,
       include: [
@@ -380,17 +406,16 @@ async function listAssignments(req, res) {
     // Remap for frontend consistency
     const mapped = assignments.map(a => {
       const responseCount = a.responses?.length || 0;
-      // If no criteria defined, progress is 0 or 100 based on status? Let's use criteria count.
-      // If totalCriteria is 0, avoid NaN by setting percentage to 0 (or 100 if completed?). 
-      // Safest is 0 if no criteria.
-      const progress = totalCriteria > 0 ? Math.min(100, Math.round((responseCount / totalCriteria) * 100)) : 0;
+      const totalAssignedCriteria = Array.isArray(a.scoring_ids) ? a.scoring_ids.length : 0;
+
+      const progress = totalAssignedCriteria > 0 ? Math.min(100, Math.round((responseCount / totalAssignedCriteria) * 100)) : 0;
 
       return {
         id: a.id,
         user: a.user,
         evaluation: {
           id: a.output?.id,
-          filename: `Evaluation ${a.output?.modelVersion?.model_name || 'Item'}`,
+          filename: a.output?.modelVersion?.model_name || 'Item',
           rag_version: a.output?.modelVersion?.version
         },
         status: a.status,
@@ -399,7 +424,7 @@ async function listAssignments(req, res) {
         completed_at: a.completed_at,
         progress: progress,
         responses_count: responseCount,
-        total_criteria: totalCriteria
+        total_criteria: totalAssignedCriteria
       };
     });
 
@@ -412,7 +437,7 @@ async function listAssignments(req, res) {
 
 async function createAssignment(req, res) {
   try {
-    const { user_assigned, evaluation, deadline } = req.body;
+    const { user_assigned, evaluation, evaluation_scorings, deadline } = req.body;
     // user_assigned = user_id
     // evaluation = output_id
 
@@ -423,6 +448,7 @@ async function createAssignment(req, res) {
     const assignment = await sql.EvaluationAssignment.create({
       user_id: user_assigned,
       output_id: evaluation,
+      scoring_ids: evaluation_scorings || null,
       deadline: deadline ? new Date(deadline) : null,
       status: 'PENDING'
     });
@@ -557,6 +583,39 @@ async function getDashboardStats(req, res) {
   }
 }
 
+async function getDashboardSettings(req, res) {
+  try {
+    let settings = await mongo.SystemSettings.findOne({ type: 'DASHBOARD_CONFIG' });
+    if (!settings) {
+      settings = await mongo.SystemSettings.create({ type: 'DASHBOARD_CONFIG' });
+    }
+    res.json(settings);
+  } catch (e) {
+    console.error("Settings Error:", e);
+    res.status(500).json({ error: "Failed to fetch settings" });
+  }
+}
+
+async function updateDashboardSettings(req, res) {
+  try {
+    const { dashboardTargetPerformance, dashboardShowDimensions, dashboardShowMetrics } = req.body;
+    let settings = await mongo.SystemSettings.findOne({ type: 'DASHBOARD_CONFIG' });
+    if (!settings) {
+      settings = new mongo.SystemSettings({ type: 'DASHBOARD_CONFIG' });
+    }
+
+    if (dashboardTargetPerformance !== undefined) settings.dashboardTargetPerformance = dashboardTargetPerformance;
+    if (dashboardShowDimensions !== undefined) settings.dashboardShowDimensions = dashboardShowDimensions;
+    if (dashboardShowMetrics !== undefined) settings.dashboardShowMetrics = dashboardShowMetrics;
+
+    await settings.save();
+    res.json(settings);
+  } catch (e) {
+    console.error("Settings Error:", e);
+    res.status(500).json({ error: "Failed to update settings" });
+  }
+}
+
 module.exports = {
   // users
   listUsers,
@@ -577,5 +636,9 @@ module.exports = {
   // maintenance
   getMaintenance,
   setMaintenance,
-  getDashboardStats
+  // dashboard stats
+  getDashboardStats,
+  // settings
+  getDashboardSettings,
+  updateDashboardSettings
 };

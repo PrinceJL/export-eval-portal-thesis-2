@@ -34,9 +34,7 @@ EvaluationAssignment.belongsTo(EvaluationOutput, { foreignKey: "output_id", as: 
 EvaluationAssignment.hasMany(EvaluationResponse, { foreignKey: "assignment_id", as: "responses" });
 EvaluationResponse.belongsTo(EvaluationAssignment, { foreignKey: "assignment_id", as: "assignment" });
 
-// EvaluationCriteria <-> EvaluationResponse
-EvaluationCriteria.hasMany(EvaluationResponse, { foreignKey: "criteria_id", as: "responses" });
-EvaluationResponse.belongsTo(EvaluationCriteria, { foreignKey: "criteria_id", as: "criteria" });
+// EvaluationCriteria association removed because criteria are now managed in Mongo EvaluationScoring
 
 // EvaluationResponse <-> EvaluationNote
 EvaluationResponse.hasMany(EvaluationNote, { foreignKey: "response_id", as: "notes" });
@@ -47,6 +45,7 @@ const Message = require("./mongo/message.model");
 const Notification = require("./mongo/notification.model");
 const SessionCache = require("./mongo/session.model");
 const AuditLog = require("./mongo/audit_log.model");
+const SystemSettings = require("./mongo/system_settings.model");
 
 module.exports = {
     sql: {
@@ -66,6 +65,7 @@ module.exports = {
         Message,
         Notification,
         SessionCache,
-        AuditLog
+        AuditLog,
+        SystemSettings
     }
 };

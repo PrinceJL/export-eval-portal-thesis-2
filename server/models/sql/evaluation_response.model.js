@@ -10,8 +10,9 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         criteria_id: {
-            type: DataTypes.UUID,
+            type: DataTypes.STRING,
             allowNull: false
+            // Stores Mongo Object ID
         },
         score: {
             type: DataTypes.INTEGER,

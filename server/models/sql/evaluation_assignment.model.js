@@ -15,6 +15,10 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
             // FK to EvaluationOutput defined in associations
         },
+        scoring_ids: {
+            type: DataTypes.JSON,
+            allowNull: true
+        },
         status: {
             type: DataTypes.ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'EXPIRED'),
             defaultValue: 'PENDING'

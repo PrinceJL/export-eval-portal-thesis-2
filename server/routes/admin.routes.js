@@ -40,4 +40,8 @@ router.put("/maintenance", adminController.setMaintenance);
 // Stats
 router.get("/stats", adminController.getDashboardStats);
 
+// Settings
+router.get("/settings/dashboard", adminController.getDashboardSettings);
+router.put("/settings/dashboard", adminController.updateDashboardSettings);
+
 module.exports = router;

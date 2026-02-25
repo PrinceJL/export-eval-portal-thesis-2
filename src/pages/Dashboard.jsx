@@ -8,9 +8,6 @@ import { useAuth } from "../auth/AuthContext";
 import StatCard from "../components/StatCard";
 import EvaluationTable from "../components/EvaluationTable";
 
-// Mock data imports
-import dimensionsData from "../data/mockD.json";
-import evaluationsData from "../data/mock.json";
 
 function AdminDashboardSkeleton() {
     return (
@@ -123,13 +120,25 @@ export default function Dashboard() {
     const [dimensions, setDimensions] = useState([]);
     const [evaluations, setEvaluations] = useState([]);
     const [dashboardLoading, setDashboardLoading] = useState(true);
+    const [expertStats, setExpertStats] = useState({
+        settings: {
+            dashboardTargetPerformance: 85,
+            dashboardShowDimensions: true,
+            dashboardShowMetrics: true
+        },
+        performance: {
+            totalPossibleScore: 1,
+            earnedScore: 0
+        }
+    });
 
-    // Mock performance (Expert)
     const userName = user?.username || "Guest";
-    const currentPerformance = 72;
-    const goalPerformance = 85;
+    const currentPerformance = expertStats.performance.totalPossibleScore > 0
+        ? Math.round((expertStats.performance.earnedScore / expertStats.performance.totalPossibleScore) * 100)
+        : 0;
+    const goalPerformance = expertStats.settings.dashboardTargetPerformance;
     const maxPerformance = 100;
-    const modelVersion = "v1.2.3";
+    const modelVersion = evaluations[0]?.evaluation?.rag_version || "N/A";
 
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'RESEARCHER';
 
@@ -148,9 +157,14 @@ export default function Dashboard() {
                     setAdminStats(stats);
                     setSystemHealth(health);
                 } else {
+                    const stats = await apiFetch('/expert/stats');
                     if (cancelled) return;
-                    setDimensions(dimensionsData);
-                    setEvaluations(evaluationsData);
+                    setDimensions(stats.dimensions || []);
+                    setEvaluations(stats.evaluations || []);
+                    setExpertStats({
+                        settings: stats.settings || expertStats.settings,
+                        performance: stats.performance || expertStats.performance
+                    });
                 }
             } catch (err) {
                 console.error(err);
@@ -295,43 +309,47 @@ export default function Dashboard() {
                         <span className="badge badge-outline px-3 py-3 text-xs font-semibold tracking-wide">{user?.role || "EXPERT"}</span>
                     </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
-                            <p className="text-xs uppercase tracking-wide opacity-65">Assigned</p>
-                            <p className="mt-1 text-2xl font-bold">{evaluations.length}</p>
+                    {expertStats.settings.dashboardShowMetrics && (
+                        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                            <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                                <p className="text-xs uppercase tracking-wide opacity-65">Assigned</p>
+                                <p className="mt-1 text-2xl font-bold">{evaluations.length}</p>
+                            </div>
+                            <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                                <p className="text-xs uppercase tracking-wide opacity-65">Completed</p>
+                                <p className="mt-1 text-2xl font-bold text-success">{completedCount}</p>
+                            </div>
+                            <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                                <p className="text-xs uppercase tracking-wide opacity-65">Pending</p>
+                                <p className="mt-1 text-2xl font-bold text-warning">{pendingCount}</p>
+                            </div>
+                            <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
+                                <p className="text-xs uppercase tracking-wide opacity-65">Avg. Score</p>
+                                <p className="mt-1 text-2xl font-bold text-primary">{averageDimensionScore}</p>
+                            </div>
                         </div>
-                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
-                            <p className="text-xs uppercase tracking-wide opacity-65">Completed</p>
-                            <p className="mt-1 text-2xl font-bold text-success">{completedCount}</p>
-                        </div>
-                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
-                            <p className="text-xs uppercase tracking-wide opacity-65">Pending</p>
-                            <p className="mt-1 text-2xl font-bold text-warning">{pendingCount}</p>
-                        </div>
-                        <div className="rounded-xl border border-base-300/70 bg-base-200/40 px-4 py-3">
-                            <p className="text-xs uppercase tracking-wide opacity-65">Avg. Score</p>
-                            <p className="mt-1 text-2xl font-bold text-primary">{averageDimensionScore}</p>
-                        </div>
-                    </div>
+                    )}
                 </section>
 
                 <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-                    <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-4 shadow-xl backdrop-blur-sm sm:p-5">
-                        <div className="flex items-center justify-between gap-3">
-                            <h2 className="text-xl font-bold">Dimension Performance</h2>
-                            <span className="text-xs font-medium opacity-60">{dimensions.length} dimensions</span>
+                    {expertStats.settings.dashboardShowDimensions ? (
+                        <div className="rounded-2xl border border-base-300/80 bg-base-100/70 p-4 shadow-xl backdrop-blur-sm sm:p-5">
+                            <div className="flex items-center justify-between gap-3">
+                                <h2 className="text-xl font-bold">Dimension Performance</h2>
+                                <span className="text-xs font-medium opacity-60">{dimensions.length} dimensions</span>
+                            </div>
+                            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                {dimensions.map((dimension, index) => (
+                                    <StatCard
+                                        key={dimension._id || dimension.name || index}
+                                        title={dimension.name}
+                                        value={dimension.avgScore}
+                                        subtitle={dimension.sentiment}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            {dimensions.map((dimension) => (
-                                <StatCard
-                                    key={dimension.name}
-                                    title={dimension.name}
-                                    value={dimension.avgScore}
-                                    subtitle={dimension.sentiment}
-                                />
-                            ))}
-                        </div>
-                    </div>
+                    ) : <div></div>}
 
                     <aside className="rounded-2xl border border-base-300/80 bg-base-100/70 p-5 shadow-xl backdrop-blur-sm">
                         <h2 className="text-lg font-bold">Model Goal Progress</h2>

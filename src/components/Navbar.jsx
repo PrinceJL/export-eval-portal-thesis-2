@@ -133,7 +133,7 @@ export default function Navbar() {
   const mainLinks = [
     { to: "/dashboard", label: "Dashboard" },
     { to: "/messaging", label: "Messaging" },
-    { to: "/evaluation", label: "Evaluation" },
+    ...(isAdmin ? [] : [{ to: "/evaluation", label: "Evaluation" }]),
     ...(isAdmin ? [{ to: "/admin/evaluations", label: "Evaluation Management" }] : []),
   ];
   const managementLinks = isManagementUser

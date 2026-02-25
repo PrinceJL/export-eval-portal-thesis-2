@@ -56,7 +56,7 @@ export default function Contact() {
           <div key={c.id} className="card bg-base-100 shadow-xl border border-base-200 hover:shadow-2xl transition-all duration-300">
             <figure className="h-64 bg-base-200">
               {c.pictureUrl ? (
-                <img src={`${getApiBaseUrl().replace(/\/api$/, '')}${c.pictureUrl}`} alt={c.name} className="h-full w-full object-cover" />
+                <img src={`${getApiBaseUrl().replace(/\/api$/, '')}${c.pictureUrl}`} alt={c.name} className="h-full w-full object-contain p-4" />
               ) : (
                 <div className="text-6xl opacity-20">👤</div>
               )}

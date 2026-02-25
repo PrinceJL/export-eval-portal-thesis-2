@@ -21,6 +21,9 @@ router.post("/assignments", expertController.createAssignment);
 router.post("/assignments/:id/draft", expertController.saveAssignmentDraft);
 router.post("/assignments/:id/submit", expertController.submitAssignmentScores);
 
+// Expert Stats
+router.get("/stats", expertController.getExpertStats);
+
 // Eval V2 (Mongo): scoring definitions
 router.post("/scorings", expertController.createScoring);
 

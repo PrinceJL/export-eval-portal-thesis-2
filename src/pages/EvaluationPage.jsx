@@ -2,7 +2,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, IconButton, ButtonGroup, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
-import { getAssignmentById, submitEvaluation } from "../api/expert";
+import { getAssignmentById, submitEvaluation, getMyAssignments } from "../api/expert";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 
 export default function EvaluationPage() {
@@ -20,7 +20,7 @@ export default function EvaluationPage() {
 
   if (!assignment) {
     return (
-      <div className="flex h-screen bg-base-100 font-sans">
+      <div className="flex h-full bg-base-100 font-sans">
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-5xl mx-auto space-y-6">
             <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-xl">
@@ -61,8 +61,25 @@ export default function EvaluationPage() {
       comments: "",
     }));
 
-    await submitEvaluation(id, { scores: payload });
-    navigate("/");
+    // Start submission and fetching next assignment concurrently to save time
+    const [_, assignments] = await Promise.all([
+      submitEvaluation(id, { scores: payload }),
+      getMyAssignments()
+    ]);
+
+    // Find the next incomplete assignment that is not the one we just submitted
+    const nextEval = assignments.find((a) => a.status !== "COMPLETED" && a.id !== id);
+
+    if (nextEval) {
+      setScores({});
+      setDimensionIndex(0);
+      setShowDescription(false);
+      setAssignment(null); // Triggers loading skeleton
+      navigate(`/evaluate/${nextEval.id}`, { replace: true });
+    } else {
+      // No more assignments left
+      navigate("/");
+    }
   };
 
   const range = [];
@@ -85,7 +102,7 @@ export default function EvaluationPage() {
   const hasCurrentScore = scores[currentScoring._id] !== undefined && scores[currentScoring._id] !== null;
 
   return (
-    <div className="flex h-screen bg-base-100 font-sans">
+    <div className="flex h-full bg-base-100 font-sans">
       {/* Main Content Area (Left) */}
       <div className="flex-1 flex flex-col h-full relative">
         {/* Chat Scroll Area */}

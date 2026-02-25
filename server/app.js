@@ -27,6 +27,9 @@ const ensureSqlSchemaCompatibility = async () => {
     await sql.sequelize.query(
         'ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT TRUE;'
     );
+    await sql.sequelize.query(
+        'ALTER TABLE IF EXISTS "evaluation_responses" ALTER COLUMN "criteria_id" TYPE VARCHAR(255);'
+    ).catch(e => console.log('Notice: Could not alter evaluation_responses criteria_id type, possibly table does not exist yet.'));
 };
 
 const connectDB = async () => {
